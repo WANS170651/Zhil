@@ -1,6 +1,20 @@
-# URL Information Collection and Storage System
+<div align="center">
 
-A production-ready system for automated web content extraction and structured data storage in Notion databases, powered by AI-driven information extraction.
+# 🌉 Zhil  
+
+**Turn any URL into structured Notion records with the power of LLMs**  
+
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![LLM](https://img.shields.io/badge/Powered%20by-LLM-orange)
+![Notion](https://img.shields.io/badge/Integration-Notion-black)
+![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+---
+
+*"Let every URL find its way into memory."*
+
+</div>
 
 ## Overview
 
