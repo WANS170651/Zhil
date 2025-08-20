@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL信息收集和存储系统 - Web界面</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-collection"></i>
+                URL信息收集系统
+            </a>
+            <div class="d-flex">
+                <span class="navbar-text me-3" id="system-status">
+                    <i class="bi bi-circle-fill text-warning"></i>
+                    <span id="status-text">检查中...</span>
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="refreshSystemStatus()">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    刷新状态
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container mt-4">
+        <!-- Alert Area -->
+        <div id="alert-container"></div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="single-url-tab" data-bs-toggle="tab" data-bs-target="#single-url" type="button" role="tab">
+                    <i class="bi bi-link"></i>
+                    单个URL处理
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="batch-urls-tab" data-bs-toggle="tab" data-bs-target="#batch-urls" type="button" role="tab">
+                    <i class="bi bi-collection"></i>
+                    批量URL处理
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results" type="button" role="tab">
+                    <i class="bi bi-list-check"></i>
+                    处理结果
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="system-info-tab" data-bs-toggle="tab" data-bs-target="#system-info" type="button" role="tab">
+                    <i class="bi bi-gear"></i>
+                    系统信息
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="mainTabContent">
+            <!-- Single URL Tab -->
+            <div class="tab-pane fade show active" id="single-url" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-link-45deg"></i>
+                            单个URL信息提取
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="single-url-form">
+                            <div class="mb-3">
+                                <label for="single-url-input" class="form-label">请输入URL</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-link"></i></span>
+                                    <input type="url" class="form-control" id="single-url-input" 
+                                           placeholder="https://example.com/job-posting" required>
+                                    <button class="btn btn-primary" type="submit" id="single-url-submit">
+                                        <i class="bi bi-play-circle"></i>
+                                        开始处理
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    支持招聘网站、企业官网等各类网页链接
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Processing Status -->
+                        <div id="single-url-status" class="d-none">
+                            <div class="alert alert-info">
+                                <div class="d-flex align-items-center">
+                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                    <div class="flex-grow-1">
+                                        <strong>正在处理中...</strong>
+                                        <div class="mt-1">
+                                            <small id="single-url-stage">初始化中</small>
+                                        </div>
+                                        <div class="progress mt-2" style="height: 4px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                 id="single-url-progress" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result Display -->
+                        <div id="single-url-result" class="d-none mt-3"></div>
+                    </div>
+                </div>
+
+                <!-- Quick Examples -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-lightbulb"></i>
+                            示例URL
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button class="btn btn-outline-secondary btn-sm mb-2 w-100 example-url" 
+                                        data-url="https://campus.kuaishou.cn/recruit/campus/e/#/campus/job-info/9822">
+                                    <i class="bi bi-briefcase"></i>
+                                    快手校招 - 数据分析师
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-outline-secondary btn-sm mb-2 w-100 example-url" 
+                                        data-url="https://www.example.com">
+                                    <i class="bi bi-globe"></i>
+                                    示例网站
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Batch URLs Tab -->
+            <div class="tab-pane fade" id="batch-urls" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-collection"></i>
+                            批量URL处理
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="batch-urls-form">
+                            <div class="mb-3">
+                                <label for="batch-urls-input" class="form-label">请输入多个URL（每行一个）</label>
+                                <textarea class="form-control" id="batch-urls-input" rows="8" 
+                                          placeholder="https://example.com/job1&#10;https://example.com/job2&#10;https://example.com/job3"></textarea>
+                                <div class="form-text">
+                                    每行输入一个URL，系统将按顺序处理
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button class="btn btn-primary" type="submit" id="batch-urls-submit">
+                                        <i class="bi bi-play-circle"></i>
+                                        开始批量处理
+                                    </button>
+                                    <button class="btn btn-secondary ms-2" type="button" onclick="loadBatchExample()">
+                                        <i class="bi bi-file-text"></i>
+                                        加载示例
+                                    </button>
+                                </div>
+                                <div>
+                                    <span class="text-muted" id="batch-url-count">URL数量: 0</span>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Batch Processing Status -->
+                        <div id="batch-processing-status" class="d-none mt-4">
+                            <div class="alert alert-info">
+                                <div class="d-flex align-items-center">
+                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                    <div class="flex-grow-1">
+                                        <strong>批量处理进行中...</strong>
+                                        <div class="mt-1">
+                                            <small id="batch-current-status">准备开始</small>
+                                        </div>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar" id="batch-progress" style="width: 0%"></div>
+                                        </div>
+                                        <div class="mt-1">
+                                            <small class="text-muted">
+                                                <span id="batch-processed">0</span> / <span id="batch-total">0</span> 已完成
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Batch Results -->
+                        <div id="batch-results" class="d-none mt-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div class="tab-pane fade" id="results" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-list-check"></i>
+                            处理历史记录
+                        </h5>
+                        <div>
+                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="exportResults()">
+                                <i class="bi bi-download"></i>
+                                导出结果
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="clearResults()">
+                                <i class="bi bi-trash"></i>
+                                清空记录
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="results-container">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-inbox display-4"></i>
+                                <p class="mt-2">暂无处理记录</p>
+                                <p class="small">开始处理URL后，结果将显示在这里</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Info Tab -->
+            <div class="tab-pane fade" id="system-info" role="tabpanel">
+                <div class="row mt-3">
+                    <!-- System Health -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-heart-pulse"></i>
+                                    系统健康状态
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="health-status">
+                                    <div class="text-center">
+                                        <div class="spinner-border" role="status"></div>
+                                        <p class="mt-2">检查系统状态中...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Configuration -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-gear"></i>
+                                    系统配置
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="config-info">
+                                    <div class="text-center">
+                                        <div class="spinner-border" role="status"></div>
+                                        <p class="mt-2">加载配置信息中...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Documentation -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-book"></i>
+                            API文档和使用说明
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>可用的API端点:</h6>
+                                <ul class="list-unstyled">
+                                    <li><code class="text-primary">GET /</code> - 系统信息</li>
+                                    <li><code class="text-primary">GET /health</code> - 健康检查</li>
+                                    <li><code class="text-primary">GET /config</code> - 配置信息</li>
+                                    <li><code class="text-success">POST /ingest/url</code> - 单个URL处理</li>
+                                    <li><code class="text-success">POST /ingest/batch</code> - 批量URL处理</li>
+                                    <li><code class="text-info">GET /docs</code> - 完整API文档</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>快速开始:</h6>
+                                <ol>
+                                    <li>在"单个URL处理"标签页输入URL</li>
+                                    <li>点击"开始处理"按钮</li>
+                                    <li>等待系统自动提取信息</li>
+                                    <li>查看处理结果和Notion链接</li>
+                                </ol>
+                                <div class="mt-3">
+                                    <a href="/docs" target="_blank" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-book"></i>
+                                        查看完整API文档
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-light mt-5 py-4">
+        <div class="container text-center">
+            <p class="text-muted mb-0">
+                <i class="bi bi-robot"></i>
+                URL信息收集和存储系统 - Powered by AI
+            </p>
+            <p class="text-muted small mt-1">
+                基于大模型驱动的智能信息提取，自动存储到Notion数据库
+            </p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Result Detail Modal -->
+    <div class="modal fade" id="resultDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">处理结果详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="result-detail-content">
+                    <!-- Content will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="static/js/app.js"></script>
+</body>
+</html>

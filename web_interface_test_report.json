@@ -1,0 +1,48 @@
+{
+  "timestamp": 1755661242.2808855,
+  "target_url": "http://127.0.0.1:8001",
+  "summary": {
+    "total_tests": 5,
+    "passed_tests": 0,
+    "success_rate": 0.0
+  },
+  "results": [
+    {
+      "test": "API可用性检查",
+      "success": false,
+      "message": "无法连接到API服务，请确保服务已启动",
+      "details": {
+        "url": "http://127.0.0.1:8001"
+      },
+      "timestamp": 1755661232.157221
+    },
+    {
+      "test": "健康检查端点",
+      "success": false,
+      "message": "健康检查异常: HTTPConnectionPool(host='127.0.0.1', port=8001): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000014D20F091D0>: Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。'))",
+      "details": {},
+      "timestamp": 1755661234.1933527
+    },
+    {
+      "test": "配置信息端点",
+      "success": false,
+      "message": "配置获取异常: HTTPConnectionPool(host='127.0.0.1', port=8001): Max retries exceeded with url: /config (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000014D20F096D0>: Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。'))",
+      "details": {},
+      "timestamp": 1755661236.2123535
+    },
+    {
+      "test": "Web界面访问",
+      "success": false,
+      "message": "Web界面访问异常: HTTPConnectionPool(host='127.0.0.1', port=8001): Max retries exceeded with url: /ui (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000014D20ED96E0>: Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。'))",
+      "details": {},
+      "timestamp": 1755661238.2360926
+    },
+    {
+      "test": "静态文件访问",
+      "success": false,
+      "message": "部分静态文件加载失败 (0/2)",
+      "details": {},
+      "timestamp": 1755661242.2800946
+    }
+  ]
+}

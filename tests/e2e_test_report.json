@@ -1,0 +1,71 @@
+{
+  "total_tests": 10,
+  "passed_tests": 8,
+  "failed_tests": 2,
+  "success_rate": 80.0,
+  "total_duration": 51.48,
+  "individual_results": [
+    {
+      "test_name": "配置完整性检查",
+      "success": true,
+      "duration": 0.0,
+      "message": "配置验证通过"
+    },
+    {
+      "test_name": "组件连接测试",
+      "success": true,
+      "duration": 3.98,
+      "message": "所有组件连接正常"
+    },
+    {
+      "test_name": "网页爬取测试",
+      "success": true,
+      "duration": 3.67,
+      "message": "网页爬取功能正常"
+    },
+    {
+      "test_name": "LLM信息提取测试",
+      "success": true,
+      "duration": 9.51,
+      "message": "LLM信息提取正常"
+    },
+    {
+      "test_name": "数据归一化测试",
+      "success": true,
+      "duration": 0.0,
+      "message": "数据归一化正常"
+    },
+    {
+      "test_name": "Notion写入测试",
+      "success": true,
+      "duration": 0.49,
+      "message": "Notion写入功能正常"
+    },
+    {
+      "test_name": "完整流水线测试",
+      "success": true,
+      "duration": 10.76,
+      "message": "完整流水线正常"
+    },
+    {
+      "test_name": "批量处理测试",
+      "success": false,
+      "duration": 9.92,
+      "message": "批量处理全部失败"
+    },
+    {
+      "test_name": "错误处理测试",
+      "success": true,
+      "duration": 0.55,
+      "message": "错误处理功能正常"
+    },
+    {
+      "test_name": "性能基准测试",
+      "success": false,
+      "duration": 12.59,
+      "message": "性能测试全部失败"
+    }
+  ],
+  "timestamp": "2025-08-19 23:14:31",
+  "system_ready": true
+}

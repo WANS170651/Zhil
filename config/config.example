@@ -1,0 +1,24 @@
+# URL信息采集与入库系统 - 配置示例
+# 请复制此文件为 .env 并填入实际值
+
+# Notion API 配置
+NOTION_TOKEN=secret_your_notion_integration_token
+NOTION_DATABASE_ID=your_database_id_here
+NOTION_VERSION=2022-06-28
+
+# LLM API 配置
+DASHSCOPE_API_KEY=sk-your_dashscope_api_key_here
+LLM_MODEL=qwen-flash
+LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+
+# 缓存配置
+SCHEMA_CACHE_TTL=1800        # Schema缓存时间（秒），默认30分钟
+SCHEMA_CACHE_MAXSIZE=100     # 缓存最大条目数
+
+# 爬虫配置
+SCRAPER_HEADLESS=true        # 是否无头模式
+SCRAPER_WAIT_TIME=2          # 等待页面加载时间（秒）
+
+# 重试配置
+MAX_RETRIES=3               # 最大重试次数
+RETRY_DELAY=1.0            # 重试延迟（秒）
