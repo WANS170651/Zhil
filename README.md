@@ -2,7 +2,7 @@
 
 # 🌉 Zhil  
 
-**Turn any URL into structured Notion records with the power of LLMs**  
+**Turn any URL into structured Notion records with the power of LLM**  
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![LLM](https://img.shields.io/badge/Powered%20by-LLM-orange)
