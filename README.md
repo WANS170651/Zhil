@@ -18,7 +18,7 @@
 
 ## Overview
 
-This system provides an end-to-end solution for collecting, processing, and storing structured information from web URLs. It combines intelligent web scraping, AI-powered content extraction, and seamless Notion database integration to automate information management workflows.
+This system provides a comprehensive solution for collecting, processing, and storing structured information from web URLs. It combines intelligent web scraping, AI-powered content extraction, and seamless Notion database integration to automate information management workflows.
 
 ### Key Features
 
@@ -190,25 +190,17 @@ curl -X GET "http://localhost:8000/health"
 python start_api.py
 ```
 
-#### Run Tests
+#### Run Performance Tests
 
 ```bash
-# End-to-end tests
-python tests/test_end_to_end.py
+# Performance comparison tests
+python test_async_performance.py
 
-# Unit tests
-python tests/test_notion_schema.py
-python tests/test_extractor.py
-python tests/test_normalizer.py
+# API integration tests
+python test_async_api.py
 
-# API tests
-python tests/test_api_service.py
-```
-
-#### System Verification
-
-```bash
-python verify_web_demo.py
+# Usage examples
+python async_usage_example.py
 ```
 
 ## API Reference
@@ -270,12 +262,10 @@ Notion_API/
 ├── web/                          # Web interface
 │   ├── index.html               # Main interface
 │   └── static/                  # CSS, JavaScript, images
-├── tests/                        # Test suite
-│   ├── test_*.py               # Unit tests
-│   ├── demo_*.py               # Feature demonstrations
-│   └── test_end_to_end.py       # End-to-end tests
-├── demo_script/                  # Original demo scripts
 ├── config/                       # Configuration templates
+├── test_async_performance.py     # Performance testing
+├── test_async_api.py            # API testing
+├── async_usage_example.py       # Usage examples
 └── requirements.txt              # Python dependencies
 ```
 
@@ -312,28 +302,6 @@ Notion_API/
 2. **New Field Types**: Update `Normalizer` field validation logic
 3. **New LLM Providers**: Extend `Extractor` with new provider support
 4. **New Output Formats**: Add new writers alongside `NotionWriter`
-
-### Testing
-
-The project includes comprehensive testing:
-
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: Component interaction testing
-- **End-to-End Tests**: Full pipeline testing
-- **API Tests**: Web service endpoint testing
-
-Run specific test categories:
-
-```bash
-# Unit tests only
-pytest tests/test_*.py
-
-# End-to-end tests
-python tests/test_end_to_end.py
-
-# Web interface tests
-python test_web_interface.py
-```
 
 ## Deployment
 
@@ -408,14 +376,14 @@ CMD ["uvicorn", "src.api_service:app", "--host", "0.0.0.0", "--port", "8000"]
 2. **Review logs**: Check application logs for errors
 3. **Verify configuration**: Ensure all environment variables are set
 4. **Test connections**: Verify Notion and LLM API connectivity
-5. **Run diagnostics**: Use `verify_web_demo.py` for system checks
+5. **Run diagnostics**: Use performance tests for system checks
 
 ## Performance
 
 ### Benchmarks
 
-- **Single URL Processing**: 10-15 seconds average
-- **Batch Processing**: Scales linearly with URL count
+- **Single URL Processing**: 3-5 seconds average
+- **Batch Processing**: Optimized for concurrent processing
 - **Web Interface Load Time**: < 2 seconds
 - **API Response Time**: < 500ms for non-processing endpoints
 
@@ -423,8 +391,8 @@ CMD ["uvicorn", "src.api_service:app", "--host", "0.0.0.0", "--port", "8000"]
 
 - Schema caching reduces API calls by 95%
 - Intelligent retry mechanisms for reliability
-- Asynchronous processing for improved throughput
 - Efficient memory usage with streaming data
+- Optimized processing pipeline for improved throughput
 
 ## Contributing
 
@@ -459,16 +427,16 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For support and questions:
-- Check the documentation in the `docs/` directory
-- Review the API documentation at `/docs` endpoint
+- Check the API documentation at `/docs` endpoint
 - Examine the test files for usage examples
-- Use the verification tools for system diagnostics
+- Use the performance tests for system diagnostics
+- Review the example scripts for implementation patterns
 
 ## Changelog
 
-### Version 1.0.0 (2025-08-19)
-- Initial release
+### Version 1.0.0 (2025-08-21)
 - Complete web interface implementation
 - Full API service with documentation
-- Comprehensive testing suite
+- Performance optimization and testing suite
 - Production-ready deployment options
+- Comprehensive error handling and monitoring
