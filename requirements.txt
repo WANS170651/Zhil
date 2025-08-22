@@ -1,13 +1,29 @@
+# 网页爬取和内容处理
 playwright>=1.47.0
 html2text>=2024.2.26
+
+# HTTP客户端（同步和异步）
 requests>=2.31.0
+httpx>=0.24.0
+
+# 环境变量和配置
 python-dotenv>=1.0.1
+
+# AI/LLM集成（支持异步）
 openai>=1.51.0
+
+# 数据验证和模型
 pydantic>=2.8.2
+
+# Web框架（异步支持）
 fastapi>=0.104.0
 uvicorn>=0.24.0
+
+# 缓存和数据处理
 cachetools>=5.3.0
 fuzzywuzzy>=0.18.0
 python-levenshtein>=0.21.0
+
+# 测试框架
 pytest>=7.4.0
-httpx>=0.24.0
+pytest-asyncio>=0.21.0
