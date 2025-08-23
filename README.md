@@ -18,6 +18,9 @@
 
 </div>
 
+<img src="images/webscreenshot1.png" alt="webscreenshot1" width="200" height="auto"> 
+<img src="images/webscreenshot2.png" alt="webscreenshot1" width="200" height="auto"> 
+
 ## Overview
 
 Zhil is a comprehensive URL information collection and storage system that transforms web content into structured Notion database records. It features a modern Next.js frontend with a beautiful, responsive UI and a robust Python FastAPI backend powered by AI/LLM technology.
