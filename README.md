@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="images/Zhil_logo.png" alt="Zhil Logo" width="200" height="auto">
-
-# Zhil  
+<img src="images/Zhil_logo.png" alt="Zhil Logo" width="200" height="auto">  
 
 **Turn any URL into structured Notion records with the power of LLM**  
 
