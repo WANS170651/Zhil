@@ -18,8 +18,8 @@
 
 </div>
 
-<img src="images/webscreenshot1.png" alt="webscreenshot1" width="200" height="auto"> 
-<img src="images/webscreenshot2.png" alt="webscreenshot1" width="200" height="auto"> 
+<img src="images/webscreenshot1.png" alt="webscreenshot1"> 
+<img src="images/webscreenshot2.png" alt="webscreenshot1"> 
 
 ## Overview
 
