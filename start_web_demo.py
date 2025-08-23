@@ -29,22 +29,69 @@ def check_environment():
     # 检查项目结构
     required_files = [
         "src/api_service.py",
-        "src/config.py",
-        "web/index.html",
-        "web/static/css/style.css",
-        "web/static/js/app.js"
+        "src/config.py"
     ]
     
+    # 检查Web模板（优先新模板，回退旧模板）
+    zhil_template_dir = project_root / "Zhil_template"
+    web_dir = project_root / "web"
+    
+    web_template_available = False
+    
+    if zhil_template_dir.exists():
+        print("🎨 发现新版Zhil模板")
+        # 检查关键文件
+        if (zhil_template_dir / "package.json").exists():
+            print("✅ Zhil模板结构完整")
+            web_template_available = True
+            
+            # 检查是否已安装依赖
+            if not (zhil_template_dir / "node_modules").exists():
+                print("⚠️ 注意：请先安装依赖 (cd Zhil_template && npm install)")
+            
+            # 检查是否已构建
+            if not (zhil_template_dir / ".next").exists():
+                print("💡 提示：可运行 'npm run build' 构建生产版本，或使用开发模式")
+        else:
+            print("❌ Zhil模板结构不完整，缺少 package.json")
+    
+    elif web_dir.exists():
+        print("📱 使用旧版Web模板作为备用")
+        required_web_files = [
+            "web/index.html",
+            "web/static/css/style.css", 
+            "web/static/js/app.js"
+        ]
+        
+        missing_web_files = []
+        for file_path in required_web_files:
+            if not (project_root / file_path).exists():
+                missing_web_files.append(file_path)
+        
+        if not missing_web_files:
+            print("✅ 旧版Web模板结构完整")
+            web_template_available = True
+        else:
+            print(f"❌ 旧版Web模板缺少文件: {missing_web_files}")
+    
+    else:
+        print("❌ 未找到任何Web模板目录")
+    
+    # 检查必需的后端文件
     missing_files = []
     for file_path in required_files:
         if not (project_root / file_path).exists():
             missing_files.append(file_path)
     
     if missing_files:
-        print(f"❌ 缺少必需文件: {missing_files}")
+        print(f"❌ 缺少必需的后端文件: {missing_files}")
         return False
     
-    print("✅ 项目结构完整")
+    if not web_template_available:
+        print("❌ 没有可用的Web模板")
+        return False
+    
+    print("✅ 项目结构检查通过")
     
     # 检查环境变量
     env_file = project_root / ".env"
@@ -109,12 +156,24 @@ def start_web_server(host="127.0.0.1", port=8000, auto_open=True):
         
         # 启动信息
         print("=" * 60)
-        print("🌐 URL信息收集和存储系统 - Web界面演示")
+        print("🎨 Zhil - URL信息收集和存储系统")
         print("=" * 60)
         print(f"📱 Web界面: http://{host}:{port}/ui")
         print(f"📚 API文档: http://{host}:{port}/docs")
         print(f"❤️ 健康检查: http://{host}:{port}/health")
         print(f"🔧 系统配置: http://{host}:{port}/config")
+        print("=" * 60)
+        
+        # 检查使用的模板类型
+        zhil_template_dir = project_root / "Zhil_template"
+        if zhil_template_dir.exists() and (zhil_template_dir / ".next").exists():
+            print("🎨 使用新版 Zhil 模板 (生产模式)")
+        elif zhil_template_dir.exists():
+            print("🎨 使用新版 Zhil 模板 (开发模式)")
+            print("💡 建议：运行 'npm run build' 构建生产版本")
+        else:
+            print("📱 使用旧版模板 (备用模式)")
+        
         print("=" * 60)
         print("💡 使用说明:")
         print("1. 打开Web界面进行交互操作")

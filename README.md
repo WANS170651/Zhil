@@ -131,6 +131,23 @@ URL Input → Web Scraping → LLM Extraction → Data Cleaning → Notion Stora
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | No |
 | `FUZZY_MATCH_THRESHOLD` | Fuzzy matching threshold (0-100) | No |
 
+### Web Interface Settings
+
+The system now includes a **Settings** interface that allows users to configure API keys directly through the web UI:
+
+1. **Access Settings**: Navigate to the "Settings" tab in the web interface
+2. **Configure API Keys**: 
+   - Enter your Qwen LLM API Key
+   - Enter your Notion API Key  
+   - Enter your Notion Database ID
+3. **Save Settings**: Click "Save Settings" to store your configuration
+4. **Test Connection**: Use "Test Connection" to verify your API keys work correctly
+
+**Note**: 
+- API keys are displayed as dots (••••••••••••••••) for security
+- If settings are left empty, the system will use environment variables as fallback
+- Settings are stored in `config/user_settings.ini` and take priority over environment variables
+
 ### Notion Database Setup
 
 1. Create a Notion database with desired fields
@@ -213,6 +230,9 @@ python async_usage_example.py
 | GET | `/health` | Health check |
 | GET | `/config` | System configuration |
 | GET | `/ui` | Web interface |
+| GET | `/settings` | Get user settings |
+| POST | `/settings` | Save user settings |
+| POST | `/settings/test` | Test API connections |
 | POST | `/ingest/url` | Process single URL |
 | POST | `/ingest/batch` | Process multiple URLs |
 | GET | `/docs` | API documentation |

@@ -50,6 +50,15 @@ class Config:
     # Notion配置
     @property
     def notion_token(self) -> str:
+        # 优先使用用户设置，然后使用环境变量
+        try:
+            from .settings_manager import settings_manager
+            effective_settings = settings_manager.get_effective_settings()
+            if effective_settings.notion_api_key:
+                return effective_settings.notion_api_key
+        except Exception:
+            pass
+        
         token = os.getenv("NOTION_TOKEN")
         if not token:
             raise ValueError("NOTION_TOKEN环境变量未设置")
@@ -57,6 +66,15 @@ class Config:
     
     @property
     def notion_database_id(self) -> str:
+        # 优先使用用户设置，然后使用环境变量
+        try:
+            from .settings_manager import settings_manager
+            effective_settings = settings_manager.get_effective_settings()
+            if effective_settings.notion_database_id:
+                return effective_settings.notion_database_id
+        except Exception:
+            pass
+        
         db_id = os.getenv("NOTION_DATABASE_ID")
         if not db_id:
             raise ValueError("NOTION_DATABASE_ID环境变量未设置")
@@ -69,6 +87,15 @@ class Config:
     # LLM配置
     @property
     def dashscope_api_key(self) -> str:
+        # 优先使用用户设置，然后使用环境变量
+        try:
+            from .settings_manager import settings_manager
+            effective_settings = settings_manager.get_effective_settings()
+            if effective_settings.qwen_api_key:
+                return effective_settings.qwen_api_key
+        except Exception:
+            pass
+        
         key = os.getenv("DASHSCOPE_API_KEY")
         if not key:
             raise ValueError("DASHSCOPE_API_KEY环境变量未设置")

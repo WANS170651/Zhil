@@ -20,6 +20,7 @@ from pathlib import Path
 
 from .main_pipeline import main_pipeline, async_main_pipeline, process_url, process_url_async, process_urls, process_urls_concurrent
 from .config import config
+from .settings_manager import settings_manager, UserSettings
 
 
 # 配置日志
@@ -90,6 +91,21 @@ class ProcessingResponse(BaseModel):
     message: str = Field(..., description="响应消息")
     timestamp: float = Field(..., description="处理时间戳")
     processing_time: float = Field(..., description="处理耗时（秒）")
+
+
+class SettingsRequest(BaseModel):
+    """设置请求模型"""
+    qwen_api_key: Optional[str] = Field(None, description="Qwen LLM API Key")
+    notion_api_key: Optional[str] = Field(None, description="Notion API Key")
+    notion_database_id: Optional[str] = Field(None, description="Notion Database ID")
+
+
+class SettingsResponse(BaseModel):
+    """设置响应模型"""
+    success: bool = Field(..., description="操作是否成功")
+    message: str = Field(..., description="响应消息")
+    data: Optional[Dict[str, Any]] = Field(None, description="设置数据")
+    timestamp: float = Field(..., description="时间戳")
 
 
 class SingleURLResponse(ProcessingResponse):
@@ -196,22 +212,116 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 配置静态文件服务
-web_dir = Path(__file__).parent.parent / "web"
-if web_dir.exists():
+# 配置静态文件服务 - 优先使用新模板，回退到旧模板
+project_root = Path(__file__).parent.parent
+zhil_template_dir = project_root / "Zhil_template"
+zhil_build_dir = zhil_template_dir / ".next"
+web_dir = project_root / "web"
+
+# 检查新模板是否可用
+if zhil_template_dir.exists():
+    logger.info(f"🎨 发现新模板目录: {zhil_template_dir}")
+    
+    # 检查是否已构建 - 支持静态导出模式
+    if zhil_build_dir.exists():
+        # 检查静态导出文件
+        static_export_html = zhil_build_dir / "server" / "app" / "index.html"
+        has_static_files = (zhil_build_dir / "static").exists()
+        
+        if static_export_html.exists() or has_static_files:
+            logger.info("✅ 使用已构建的 Zhil 模板 (静态导出模式)")
+            
+            # 挂载 Next.js 静态资源
+            if has_static_files:
+                app.mount("/_next/static", StaticFiles(directory=str(zhil_build_dir / "static")), name="next_static")
+            
+            # 挂载图片和其他公共资源
+            public_dir = zhil_template_dir / "public"
+            if public_dir.exists():
+                app.mount("/images", StaticFiles(directory=str(public_dir / "images")), name="images")
+                app.mount("/public", StaticFiles(directory=str(public_dir)), name="public")
+            
+            # 主界面路由 - 指向静态导出的 HTML
+            @app.get("/ui", response_class=FileResponse)
+            @app.get("/ui/", response_class=FileResponse)
+            @app.get("/", response_class=FileResponse, include_in_schema=False)
+            async def web_interface():
+                """新版Web界面主页 (Zhil模板 - 静态导出)"""
+                # 优先使用静态导出的 HTML
+                if static_export_html.exists():
+                    return FileResponse(str(static_export_html))
+                else:
+                    raise HTTPException(status_code=404, detail="Zhil模板构建文件不完整")
+            
+    else:
+        logger.warning("⚠️ Zhil模板未构建，将使用开发代理模式")
+        
+        # 开发模式路由
+        @app.get("/ui")
+        @app.get("/ui/")
+        async def web_interface_dev():
+            """开发模式：提示用户启动 Next.js 开发服务器"""
+            return {
+                "message": "Zhil模板开发模式",
+                "instructions": [
+                    "请在 Zhil_template 目录运行以下命令:",
+                    "1. npm install",
+                    "2. npm run dev",
+                    "3. 访问 http://localhost:3000"
+                ],
+                "build_instructions": [
+                    "或构建生产版本:",
+                    "1. npm run build",
+                    "2. 重启此API服务"
+                ]
+            }
+
+# 备用方案：使用旧模板
+elif web_dir.exists():
+    logger.info(f"📱 使用旧版模板: {web_dir}")
     # 挂载静态文件目录
     app.mount("/static", StaticFiles(directory=str(web_dir / "static")), name="static")
     
     # Web界面路由
     @app.get("/ui", response_class=FileResponse)
     @app.get("/ui/", response_class=FileResponse)
-    async def web_interface():
-        """Web界面主页"""
+    async def web_interface_legacy():
+        """旧版Web界面主页"""
         return FileResponse(str(web_dir / "index.html"))
-    
-    logger.info(f"✅ 静态文件服务已配置: {web_dir}")
+        
+    logger.info(f"✅ 旧版静态文件服务已配置: {web_dir}")
+
 else:
-    logger.warning(f"⚠️ Web目录不存在: {web_dir}")
+    logger.error(f"❌ 未找到任何Web模板目录")
+    
+    @app.get("/ui")
+    @app.get("/ui/")
+    async def web_interface_missing():
+        """模板缺失提示"""
+        return {
+            "error": "Web模板不存在",
+            "message": "请确保 Zhil_template 或 web 目录存在",
+            "api_docs": "/docs"
+        }
+
+# 通用的测试和调试页面路由
+@app.get("/test", response_class=FileResponse)
+async def test_page():
+    """API连接测试页面"""
+    test_file = project_root / "test_api.html"
+    if test_file.exists():
+        return FileResponse(str(test_file))
+    else:
+        return {"error": "Test file not found", "message": "API测试页面不存在"}
+
+@app.get("/debug", response_class=FileResponse)
+async def debug_page():
+    """API调试页面"""
+    debug_file = project_root / "debug.html"
+    if debug_file.exists():
+        return FileResponse(str(debug_file))
+    else:
+        return {"error": "Debug file not found", "message": "调试页面不存在"}
 
 
 # 全局异常处理器
@@ -503,8 +613,8 @@ async def pipeline_status():
             "database_schema": {
                 "loaded": schema is not None,
                 "fields_count": len(schema.fields) if schema else 0,
-                "title_field": schema.title_field_name if schema else None,
-                "url_field": schema.url_field_name if schema else None
+                "title_field": schema.title_field if schema else None,
+                "url_field": schema.url_field if schema else None
             },
             "timestamp": time.time()
         }
@@ -529,6 +639,185 @@ async def get_config():
         "log_level": config.log_level,
         "version": "1.0.0"
     }
+
+
+@app.get("/settings", response_model=SettingsResponse, tags=["设置"])
+async def get_settings():
+    """获取当前设置"""
+    try:
+        # 使用设置管理器获取有效设置
+        effective_settings = settings_manager.get_effective_settings()
+        
+        # 转换为字典格式
+        settings_data = effective_settings.to_dict()
+        
+        return SettingsResponse(
+            success=True,
+            message="设置获取成功",
+            data=settings_data,
+            timestamp=time.time()
+        )
+        
+    except Exception as e:
+        logger.error(f"获取设置失败: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=SettingsResponse(
+                success=False,
+                message=f"获取设置失败: {str(e)}",
+                timestamp=time.time()
+            ).dict()
+        )
+
+
+@app.post("/settings", response_model=SettingsResponse, tags=["设置"])
+async def save_settings(request: SettingsRequest):
+    """保存设置"""
+    try:
+        # 使用设置管理器保存设置
+        updates = {}
+        
+        if request.qwen_api_key is not None:
+            updates["qwen_api_key"] = request.qwen_api_key
+            logger.info("Qwen API Key已更新")
+        
+        if request.notion_api_key is not None:
+            updates["notion_api_key"] = request.notion_api_key
+            logger.info("Notion API Key已更新")
+        
+        if request.notion_database_id is not None:
+            updates["notion_database_id"] = request.notion_database_id
+            logger.info("Notion Database ID已更新")
+        
+        # 更新设置
+        updated_settings = settings_manager.update_settings(updates)
+        
+        return SettingsResponse(
+            success=True,
+            message="设置保存成功",
+            data=updated_settings.to_dict(),
+            timestamp=time.time()
+        )
+        
+    except Exception as e:
+        logger.error(f"保存设置失败: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=SettingsResponse(
+                success=False,
+                message=f"保存设置失败: {str(e)}",
+                timestamp=time.time()
+            ).dict()
+        )
+
+
+@app.post("/settings/test", response_model=SettingsResponse, tags=["设置"])
+async def test_settings(request: SettingsRequest):
+    """测试设置连接"""
+    try:
+        test_results = {
+            "qwen_api_key": False,
+            "notion_api_key": False,
+            "notion_database_id": False
+        }
+        
+        # 测试Qwen API Key
+        if request.qwen_api_key:
+            try:
+                # 导入并测试Qwen API连接
+                from .extractor import test_extractor_async
+                # 临时设置API Key进行测试
+                original_key = os.getenv('DASHSCOPE_API_KEY')
+                os.environ['DASHSCOPE_API_KEY'] = request.qwen_api_key
+                
+                test_ok = await test_extractor_async()
+                test_results["qwen_api_key"] = test_ok
+                
+                # 恢复原始API Key
+                if original_key:
+                    os.environ['DASHSCOPE_API_KEY'] = original_key
+                else:
+                    os.environ.pop('DASHSCOPE_API_KEY', None)
+                
+                if test_ok:
+                    logger.info("Qwen API连接测试成功")
+                else:
+                    logger.error("Qwen API连接测试失败")
+                    
+            except Exception as e:
+                logger.error(f"Qwen API连接测试失败: {e}")
+        
+        # 测试Notion API Key
+        if request.notion_api_key:
+            try:
+                # 导入并测试Notion API连接
+                from .notion_writer import test_notion_connection_async
+                # 临时设置API Key进行测试
+                original_key = os.getenv('NOTION_TOKEN')
+                os.environ['NOTION_TOKEN'] = request.notion_api_key
+                
+                test_ok = await test_notion_connection_async()
+                test_results["notion_api_key"] = test_ok
+                
+                # 恢复原始API Key
+                if original_key:
+                    os.environ['NOTION_TOKEN'] = original_key
+                else:
+                    os.environ.pop('NOTION_TOKEN', None)
+                
+                if test_ok:
+                    logger.info("Notion API连接测试成功")
+                else:
+                    logger.error("Notion API连接测试失败")
+                    
+            except Exception as e:
+                logger.error(f"Notion API连接测试失败: {e}")
+        
+        # 测试Notion Database ID
+        if request.notion_database_id:
+            try:
+                # 导入并测试Notion Database访问
+                from .notion_schema import get_database_schema_async
+                # 临时设置Database ID进行测试
+                original_db_id = os.getenv('NOTION_DATABASE_ID')
+                os.environ['NOTION_DATABASE_ID'] = request.notion_database_id
+                
+                schema = await get_database_schema_async()
+                test_results["notion_database_id"] = schema is not None
+                
+                # 恢复原始Database ID
+                if original_db_id:
+                    os.environ['NOTION_DATABASE_ID'] = original_db_id
+                else:
+                    os.environ.pop('NOTION_DATABASE_ID', None)
+                
+                if schema:
+                    logger.info("Notion Database访问测试成功")
+                else:
+                    logger.error("Notion Database访问测试失败")
+                    
+            except Exception as e:
+                logger.error(f"Notion Database访问测试失败: {e}")
+        
+        all_tests_passed = all(test_results.values())
+        
+        return SettingsResponse(
+            success=all_tests_passed,
+            message="所有连接测试通过" if all_tests_passed else "部分连接测试失败",
+            data=test_results,
+            timestamp=time.time()
+        )
+        
+    except Exception as e:
+        logger.error(f"测试设置失败: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=SettingsResponse(
+                success=False,
+                message=f"测试设置失败: {str(e)}",
+                timestamp=time.time()
+            ).dict()
+        )
 
 
 # 启动函数

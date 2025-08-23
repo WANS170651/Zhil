@@ -5,7 +5,7 @@
 
 // 全局配置
 const CONFIG = {
-    API_BASE_URL: 'http://localhost:8000',
+    API_BASE_URL: window.location.origin, // 自动使用当前页面的主机和端口
     POLL_INTERVAL: 1000,
     MAX_RETRIES: 3,
     TIMEOUT: 30000
@@ -76,10 +76,15 @@ function cacheElements() {
     ELEMENTS.batchTotal = document.getElementById('batch-total');
     ELEMENTS.batchResults = document.getElementById('batch-results');
     
-    // 结果和系统信息相关
+    // 结果和设置相关
     ELEMENTS.resultsContainer = document.getElementById('results-container');
     ELEMENTS.healthStatus = document.getElementById('health-status');
-    ELEMENTS.configInfo = document.getElementById('config-info');
+    
+    // 设置相关
+    ELEMENTS.apiSettingsForm = document.getElementById('api-settings-form');
+    ELEMENTS.qwenApiKey = document.getElementById('qwen-api-key');
+    ELEMENTS.notionApiKey = document.getElementById('notion-api-key');
+    ELEMENTS.notionDatabaseId = document.getElementById('notion-database-id');
 }
 
 /**
@@ -99,6 +104,11 @@ function bindEventListeners() {
     // URL数量统计
     if (ELEMENTS.batchUrlsInput) {
         ELEMENTS.batchUrlsInput.addEventListener('input', updateBatchUrlCount);
+    }
+    
+    // 设置表单
+    if (ELEMENTS.apiSettingsForm) {
+        ELEMENTS.apiSettingsForm.addEventListener('submit', handleSettingsSubmit);
     }
     
     // 示例URL按钮
@@ -130,25 +140,40 @@ function bindEventListeners() {
  */
 async function initializeSystem() {
     console.log('🔍 检查系统状态...');
+    console.log('🔧 当前配置:', CONFIG);
+    console.log('🌐 当前页面信息:', {
+        origin: window.location.origin,
+        href: window.location.href,
+        protocol: window.location.protocol,
+        host: window.location.host
+    });
+    
     updateSystemStatus('检查中...', 'warning');
     
     try {
         // 检查API连接
+        console.log('📡 开始API健康检查...');
         const response = await fetchAPI('/health');
+        console.log('📡 API健康检查响应:', response);
         
         if (response.status === 'healthy') {
             updateSystemStatus('系统正常', 'success');
             STATE.systemStatus = 'healthy';
+            console.log('✅ 系统状态检查成功');
         } else {
             updateSystemStatus('系统异常', 'danger');
             STATE.systemStatus = 'unhealthy';
+            console.log('⚠️ 系统状态异常:', response);
         }
         
-        // 加载系统配置
-        await loadSystemInfo();
+        // 加载设置
+        console.log('⚙️ 开始加载设置...');
+        await loadSettings();
+        console.log('✅ 设置加载完成');
         
     } catch (error) {
         console.error('❌ 系统状态检查失败:', error);
+        console.error('❌ 错误堆栈:', error.stack);
         updateSystemStatus('连接失败', 'danger');
         STATE.systemStatus = 'error';
         
@@ -649,95 +674,7 @@ function handleTabSwitch(tabId) {
     }
 }
 
-/**
- * 加载系统信息
- */
-async function loadSystemInfo() {
-    try {
-        // 加载健康状态
-        if (ELEMENTS.healthStatus) {
-            ELEMENTS.healthStatus.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">检查系统状态中...</p></div>';
-            
-            const healthResponse = await fetchAPI('/health');
-            
-            const healthHtml = `
-                <div class="list-group">
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>系统状态</span>
-                        <span class="badge bg-${healthResponse.status === 'healthy' ? 'success' : 'danger'} rounded-pill">
-                            ${healthResponse.status === 'healthy' ? '正常' : '异常'}
-                        </span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>API版本</span>
-                        <span class="text-muted">${healthResponse.version || '未知'}</span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>检查时间</span>
-                        <span class="text-muted timestamp">${formatTimestamp(new Date().toISOString())}</span>
-                    </div>
-                </div>
-            `;
-            
-            ELEMENTS.healthStatus.innerHTML = healthHtml;
-        }
-        
-        // 加载配置信息
-        if (ELEMENTS.configInfo) {
-            ELEMENTS.configInfo.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">加载配置信息中...</p></div>';
-            
-            const configResponse = await fetchAPI('/config');
-            
-            const configHtml = `
-                <div class="list-group">
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>LLM模型</span>
-                        <span class="text-muted">${configResponse.llm_model || '未知'}</span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Notion版本</span>
-                        <span class="text-muted">${configResponse.notion_version || '未知'}</span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>缓存TTL</span>
-                        <span class="text-muted">${configResponse.schema_cache_ttl || '未知'}秒</span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>模糊匹配阈值</span>
-                        <span class="text-muted">${configResponse.fuzzy_match_threshold || '未知'}%</span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>日志级别</span>
-                        <span class="text-muted">${configResponse.log_level || '未知'}</span>
-                    </div>
-                </div>
-            `;
-            
-            ELEMENTS.configInfo.innerHTML = configHtml;
-        }
-        
-    } catch (error) {
-        console.error('❌ 加载系统信息失败:', error);
-        
-        if (ELEMENTS.healthStatus) {
-            ELEMENTS.healthStatus.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    无法加载系统状态: ${error.message}
-                </div>
-            `;
-        }
-        
-        if (ELEMENTS.configInfo) {
-            ELEMENTS.configInfo.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    无法加载配置信息: ${error.message}
-                </div>
-            `;
-        }
-    }
-}
+
 
 /**
  * 工具函数 - API请求
@@ -756,6 +693,11 @@ async function fetchAPI(endpoint, options = {}) {
     const finalOptions = { ...defaultOptions, ...options };
     
     console.log(`🌐 API请求: ${finalOptions.method || 'GET'} ${url}`);
+    console.log(`🔧 配置信息:`, {
+        API_BASE_URL: CONFIG.API_BASE_URL,
+        currentOrigin: window.location.origin,
+        currentHref: window.location.href
+    });
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), finalOptions.timeout);
@@ -768,12 +710,15 @@ async function fetchAPI(endpoint, options = {}) {
         
         clearTimeout(timeoutId);
         
+        console.log(`📡 响应状态: ${response.status} ${response.statusText}`);
+        console.log(`📡 响应头:`, Object.fromEntries(response.headers.entries()));
+        
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log(`✅ API响应成功: ${endpoint}`);
+        console.log(`✅ API响应成功: ${endpoint}`, data);
         
         return data;
         
@@ -785,6 +730,11 @@ async function fetchAPI(endpoint, options = {}) {
         }
         
         console.error(`❌ API请求失败: ${endpoint}`, error);
+        console.error(`❌ 错误详情:`, {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         throw error;
     }
 }
@@ -953,5 +903,187 @@ window.addEventListener('unhandledrejection', function(event) {
     console.error('💥 未处理的Promise拒绝:', event.reason);
     showAlert('warning', '网络错误', '网络请求失败，请检查网络连接。');
 });
+
+/**
+ * 设置相关函数
+ */
+
+/**
+ * 处理设置表单提交
+ */
+async function handleSettingsSubmit(event) {
+    event.preventDefault();
+    
+    const settings = {
+        qwen_api_key: ELEMENTS.qwenApiKey.value.trim(),
+        notion_api_key: ELEMENTS.notionApiKey.value.trim(),
+        notion_database_id: ELEMENTS.notionDatabaseId.value.trim()
+    };
+    
+    try {
+        await saveSettings(settings);
+        showAlert('success', '设置保存成功', 'API设置已成功保存。');
+    } catch (error) {
+        console.error('❌ 保存设置失败:', error);
+        showAlert('danger', '保存失败', '设置保存失败: ' + error.message);
+    }
+}
+
+/**
+ * 保存设置到后端
+ */
+async function saveSettings(settings) {
+    const response = await fetchAPI('/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+    });
+    
+    if (!response.success) {
+        throw new Error(response.message || '保存失败');
+    }
+    
+    return response;
+}
+
+/**
+ * 加载设置
+ */
+async function loadSettings() {
+    try {
+        // 加载健康状态
+        if (ELEMENTS.healthStatus) {
+            ELEMENTS.healthStatus.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">检查系统状态中...</p></div>';
+            
+            const healthResponse = await fetchAPI('/health');
+            
+            const healthHtml = `
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>系统状态</span>
+                        <span class="badge bg-${healthResponse.status === 'healthy' ? 'success' : 'danger'} rounded-pill">
+                            ${healthResponse.status === 'healthy' ? '正常' : '异常'}
+                        </span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>API版本</span>
+                        <span class="text-muted">${healthResponse.version || '未知'}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>检查时间</span>
+                        <span class="text-muted timestamp">${formatTimestamp(new Date().toISOString())}</span>
+                    </div>
+                </div>
+            `;
+            
+            ELEMENTS.healthStatus.innerHTML = healthHtml;
+        }
+        
+        // 加载当前设置
+        const settingsResponse = await fetchAPI('/settings');
+        
+        if (settingsResponse.success) {
+            const settings = settingsResponse.data || {};
+            
+            // 填充表单字段（API Key显示为点状）
+            if (ELEMENTS.qwenApiKey) {
+                ELEMENTS.qwenApiKey.value = settings.qwen_api_key ? '••••••••••••••••' : '';
+            }
+            if (ELEMENTS.notionApiKey) {
+                ELEMENTS.notionApiKey.value = settings.notion_api_key ? '••••••••••••••••' : '';
+            }
+            if (ELEMENTS.notionDatabaseId) {
+                ELEMENTS.notionDatabaseId.value = settings.notion_database_id || '';
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ 加载设置失败:', error);
+        
+        if (ELEMENTS.healthStatus) {
+            ELEMENTS.healthStatus.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    无法加载系统状态: ${error.message}
+                </div>
+            `;
+        }
+        
+        showAlert('warning', '加载设置失败', '无法加载当前设置，请检查网络连接。');
+    }
+}
+
+/**
+ * 测试设置连接
+ */
+async function testSettings() {
+    const settings = {
+        qwen_api_key: ELEMENTS.qwenApiKey.value.trim(),
+        notion_api_key: ELEMENTS.notionApiKey.value.trim(),
+        notion_database_id: ELEMENTS.notionDatabaseId.value.trim()
+    };
+    
+    try {
+        showAlert('info', '测试连接中', '正在测试API连接，请稍候...');
+        
+        const response = await fetchAPI('/settings/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        if (response.success) {
+            showAlert('success', '连接测试成功', '所有API连接测试通过！');
+        } else {
+            showAlert('danger', '连接测试失败', response.message || '连接测试失败');
+        }
+        
+    } catch (error) {
+        console.error('❌ 连接测试失败:', error);
+        showAlert('danger', '连接测试失败', '连接测试失败: ' + error.message);
+    }
+}
+
+/**
+ * 切换密码可见性
+ */
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.nextElementSibling;
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+/**
+ * 全局函数 - 加载设置
+ */
+window.loadSettings = function() {
+    loadSettings();
+};
+
+/**
+ * 全局函数 - 测试设置
+ */
+window.testSettings = function() {
+    testSettings();
+};
+
+/**
+ * 全局函数 - 切换密码可见性
+ */
+window.togglePasswordVisibility = function(inputId) {
+    togglePasswordVisibility(inputId);
+};
 
 console.log('📱 Web界面JavaScript模块加载完成');

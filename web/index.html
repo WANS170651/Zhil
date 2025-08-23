@@ -59,9 +59,9 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="system-info-tab" data-bs-toggle="tab" data-bs-target="#system-info" type="button" role="tab">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
                     <i class="bi bi-gear"></i>
-                    系统信息
+                    设置
                 </button>
             </li>
         </ul>
@@ -245,16 +245,88 @@
                 </div>
             </div>
 
-            <!-- System Info Tab -->
-            <div class="tab-pane fade" id="system-info" role="tabpanel">
+            <!-- Settings Tab -->
+            <div class="tab-pane fade" id="settings" role="tabpanel">
                 <div class="row mt-3">
-                    <!-- System Health -->
-                    <div class="col-md-6">
+                    <!-- API Settings -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-key"></i>
+                                    API设置
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <form id="api-settings-form">
+                                    <div class="mb-3">
+                                        <label for="qwen-api-key" class="form-label">Qwen LLM API Key</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-robot"></i></span>
+                                            <input type="password" class="form-control" id="qwen-api-key" 
+                                                   placeholder="输入您的Qwen API Key">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('qwen-api-key')">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                        <div class="form-text">
+                                            留空则使用.env文件中的默认配置
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="notion-api-key" class="form-label">Notion API Key</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-database"></i></span>
+                                            <input type="password" class="form-control" id="notion-api-key" 
+                                                   placeholder="输入您的Notion API Key">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('notion-api-key')">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                        <div class="form-text">
+                                            留空则使用.env文件中的默认配置
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="notion-database-id" class="form-label">Notion Database ID</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-collection"></i></span>
+                                            <input type="text" class="form-control" id="notion-database-id" 
+                                                   placeholder="输入您的Notion Database ID">
+                                        </div>
+                                        <div class="form-text">
+                                            留空则使用.env文件中的默认配置
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-check-circle"></i>
+                                            保存设置
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="loadSettings()">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                            重新加载
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info" onclick="testSettings()">
+                                            <i class="bi bi-play-circle"></i>
+                                            测试连接
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Status -->
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
                                 <h6 class="card-title mb-0">
                                     <i class="bi bi-heart-pulse"></i>
-                                    系统健康状态
+                                    系统状态
                                 </h6>
                             </div>
                             <div class="card-body">
@@ -262,26 +334,6 @@
                                     <div class="text-center">
                                         <div class="spinner-border" role="status"></div>
                                         <p class="mt-2">检查系统状态中...</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- System Configuration -->
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="card-title mb-0">
-                                    <i class="bi bi-gear"></i>
-                                    系统配置
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="config-info">
-                                    <div class="text-center">
-                                        <div class="spinner-border" role="status"></div>
-                                        <p class="mt-2">加载配置信息中...</p>
                                     </div>
                                 </div>
                             </div>
