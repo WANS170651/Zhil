@@ -1,14 +1,18 @@
 <div align="center">
 
-# 🌉 Zhil  
+<img src="images/Zhil_logo.png" alt="Zhil Logo" width="200" height="auto">
+
+# Zhil  
 
 **Turn any URL into structured Notion records with the power of LLM**  
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-black)
+![React](https://img.shields.io/badge/UI-React%2018-blue)
+![TypeScript](https://img.shields.io/badge/Language-TypeScript-blue)
 ![LLM](https://img.shields.io/badge/Powered%20by-LLM-orange)
 ![Notion](https://img.shields.io/badge/Integration-Notion-black)
-![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
-![License](https://img.shields.io/badge/License-MIT-green)
+![Status](https://img.shields.io/badge/Status-Production%20Ready-green)
 
 ---
 
@@ -18,17 +22,19 @@
 
 ## Overview
 
-This system provides a comprehensive solution for collecting, processing, and storing structured information from web URLs. It combines intelligent web scraping, AI-powered content extraction, and seamless Notion database integration to automate information management workflows.
+Zhil is a comprehensive URL information collection and storage system that transforms web content into structured Notion database records. It features a modern Next.js frontend with a beautiful, responsive UI and a robust Python FastAPI backend powered by AI/LLM technology.
 
 ### Key Features
 
+- **Modern Web Interface**: Beautiful Next.js 14 frontend with TailwindCSS and shadcn/ui components
 - **Intelligent Web Scraping**: Playwright-based scraping with JavaScript rendering support
 - **AI-Powered Extraction**: Large Language Model (LLM) integration for structured data extraction
 - **Dynamic Schema Adaptation**: Automatic adaptation to any Notion database structure
 - **Data Normalization**: Intelligent data cleaning and validation with fuzzy matching
 - **Duplicate Detection**: URL-based deduplication with smart upsert operations
 - **Batch Processing**: Support for bulk URL processing with progress tracking
-- **Web Interface**: Modern responsive web UI for user interaction
+- **Real-time Status**: Live processing status updates with progress indicators
+- **History Management**: Persistent processing history with export functionality
 - **RESTful API**: Comprehensive API endpoints with automatic documentation
 - **Production Ready**: Comprehensive testing, logging, and error handling
 
@@ -38,6 +44,11 @@ This system provides a comprehensive solution for collecting, processing, and st
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
+│                    Next.js Frontend                            │
+│                (Modern React UI Interface)                      │
+└─────────────────┬───────────────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────────────┐
 │                     FastAPI Web Service                        │
 │                    (RESTful API Interface)                     │
 └─────────────────┬───────────────────────────────────────────────┘
@@ -53,22 +64,15 @@ This system provides a comprehensive solution for collecting, processing, and st
 └───────┘ └───────┘ └───────┘ └───────┘ └───────┘     └───────┘
 ```
 
-### Data Flow
-
-```
-URL Input → Web Scraping → LLM Extraction → Data Cleaning → Notion Storage
-    ↓            ↓              ↓              ↓              ↓
- Validation   Content        Structure      Format        Dedup Store
-             Extraction     Extraction    Validation
-```
-
 ### Technology Stack
 
+- **Frontend**: Next.js 14, React 18, TypeScript, TailwindCSS, shadcn/ui
 - **Backend**: Python 3.8+, FastAPI, Uvicorn
 - **Web Scraping**: Playwright, html2text
 - **AI/ML**: OpenAI SDK (Qwen model), Function Calling
 - **Database**: Notion API
-- **Frontend**: HTML5, CSS3, JavaScript ES6+, Bootstrap 5
+- **State Management**: Zustand
+- **HTTP Client**: Axios
 - **Testing**: pytest, httpx
 - **Utilities**: pydantic, cachetools, fuzzywuzzy
 
@@ -77,6 +81,7 @@ URL Input → Web Scraping → LLM Extraction → Data Cleaning → Notion Stora
 ### Prerequisites
 
 - Python 3.8 or higher
+- Node.js 18+ and pnpm
 - Notion account with API access
 - Dashscope API key for LLM services
 
@@ -88,26 +93,32 @@ URL Input → Web Scraping → LLM Extraction → Data Cleaning → Notion Stora
    cd Notion_API
    ```
 
-2. **Create virtual environment**
+2. **Setup Python backend**
    ```bash
+   # Create virtual environment
    python -m venv .venv
+   
+   # Activate virtual environment
    # Windows
    .\.venv\Scripts\activate
    # Linux/Mac
    source .venv/bin/activate
-   ```
-
-3. **Install dependencies**
-   ```bash
+   
+   # Install Python dependencies
    pip install -r requirements.txt
-   ```
-
-4. **Install Playwright browsers**
-   ```bash
+   
+   # Install Playwright browsers
    playwright install
    ```
 
-5. **Configure environment variables**
+3. **Setup Next.js frontend**
+   ```bash
+   cd Zhil_template
+   pnpm install
+   pnpm build
+   ```
+
+4. **Configure environment variables**
    ```bash
    cp config/config.example .env
    ```
@@ -133,7 +144,7 @@ URL Input → Web Scraping → LLM Extraction → Data Cleaning → Notion Stora
 
 ### Web Interface Settings
 
-The system now includes a **Settings** interface that allows users to configure API keys directly through the web UI:
+The system includes a **Settings** interface that allows users to configure API keys directly through the web UI:
 
 1. **Access Settings**: Navigate to the "Settings" tab in the web interface
 2. **Configure API Keys**: 
@@ -165,15 +176,32 @@ The system now includes a **Settings** interface that allows users to configure 
    ```
 
 2. **Access the web interface**
-   - Web UI: http://localhost:8000/ui
-   - API Documentation: http://localhost:8000/docs
-   - Health Check: http://localhost:8000/health
+   - Web UI: http://127.0.0.1:8000/ui
+   - API Docs: http://127.0.0.1:8000/docs
 
 3. **Use the interface**
-   - Single URL processing: Enter URL and click process
-   - Batch processing: Enter multiple URLs (one per line)
-   - View results: Check processing history and results
-   - Monitor system: View system status and configuration
+   - **Single URL Processing**: Enter URL and click process with real-time status
+   - **Batch Processing**: Enter multiple URLs (one per line) with progress tracking
+   - **Processing Results**: View history with status indicators and Notion links
+   - **System Settings**: Configure API keys and test connections
+   - **System Status**: Monitor pipeline health and configuration
+
+### Frontend Features
+
+#### Modern UI Components
+- **Animated Cards**: Beautiful project cards with hover effects
+- **Real-time Status**: Live processing indicators with icons
+- **Progress Tracking**: Visual progress bars for batch operations
+- **History Management**: Persistent processing history with export
+- **Responsive Design**: Works seamlessly on desktop and mobile
+- **Dark Theme**: Modern dark theme with glass morphism effects
+
+#### Interactive Elements
+- **URL Validation**: Real-time URL format validation
+- **Status Indicators**: Success/Error icons with color coding
+- **Export Functionality**: Export processing history as JSON
+- **Clear History**: One-click history clearing
+- **Notion Links**: Direct links to created Notion pages
 
 ### API Usage
 
@@ -278,16 +306,46 @@ Notion_API/
 │   ├── normalizer.py             # Data cleaning and validation
 │   ├── notion_writer.py          # Notion API interaction
 │   ├── main_pipeline.py          # Main processing pipeline
-│   └── api_service.py            # FastAPI web service
-├── web/                          # Web interface
-│   ├── index.html               # Main interface
-│   └── static/                  # CSS, JavaScript, images
-├── config/                       # Configuration templates
+│   ├── api_service.py            # FastAPI web service
+│   └── settings_manager.py       # Settings management
+├── Zhil_template/                # Next.js frontend
+│   ├── app/                     # Next.js app directory
+│   │   ├── layout.tsx           # Root layout
+│   │   ├── page.tsx             # Main page
+│   │   └── globals.css          # Global styles
+│   ├── components/              # React components
+│   │   ├── project-card.tsx     # Main UI cards
+│   │   └── ui/                  # shadcn/ui components
+│   ├── lib/                     # Utility libraries
+│   │   ├── api.ts               # API client
+│   │   ├── store.ts             # Zustand state management
+│   │   └── utils.ts             # Utility functions
+│   ├── public/                  # Static assets
+│   └── package.json             # Frontend dependencies
+├── web/                         # Legacy web interface (deprecated)
+├── config/                      # Configuration templates
 ├── test_async_performance.py     # Performance testing
 ├── test_async_api.py            # API testing
 ├── async_usage_example.py       # Usage examples
 └── requirements.txt              # Python dependencies
 ```
+
+### Frontend Architecture
+
+#### State Management (Zustand)
+- **Global State**: Processing status, history, settings
+- **Real-time Updates**: Live status updates during processing
+- **Persistent Storage**: Local storage for history persistence
+
+#### API Integration
+- **Axios Client**: Centralized API communication
+- **Type Safety**: TypeScript interfaces for all API calls
+- **Error Handling**: Comprehensive error handling and retry logic
+
+#### UI Components
+- **shadcn/ui**: Modern, accessible component library
+- **TailwindCSS**: Utility-first CSS framework
+- **Responsive Design**: Mobile-first responsive layout
 
 ### Core Modules
 
@@ -322,29 +380,41 @@ Notion_API/
 2. **New Field Types**: Update `Normalizer` field validation logic
 3. **New LLM Providers**: Extend `Extractor` with new provider support
 4. **New Output Formats**: Add new writers alongside `NotionWriter`
+5. **Frontend Components**: Add new React components in `Zhil_template/components/`
 
 ## Deployment
 
 ### Local Development
 
 ```bash
+# Start backend
 python start_web_demo.py --port 8000
+
+# Start frontend (development mode)
+cd Zhil_template
+pnpm dev
 ```
 
 ### Production Deployment
 
-1. **Environment Setup**
+1. **Build Frontend**
+   ```bash
+   cd Zhil_template
+   pnpm build
+   ```
+
+2. **Environment Setup**
    ```bash
    export PYTHONPATH=/path/to/Notion_API
    export LOG_LEVEL=INFO
    ```
 
-2. **Start Services**
+3. **Start Services**
    ```bash
    uvicorn src.api_service:app --host 0.0.0.0 --port 8000 --workers 4
    ```
 
-3. **Reverse Proxy (Nginx)**
+4. **Reverse Proxy (Nginx)**
    ```nginx
    server {
        listen 80;
@@ -406,6 +476,7 @@ CMD ["uvicorn", "src.api_service:app", "--host", "0.0.0.0", "--port", "8000"]
 - **Batch Processing**: Optimized for concurrent processing
 - **Web Interface Load Time**: < 2 seconds
 - **API Response Time**: < 500ms for non-processing endpoints
+- **Frontend Build Time**: < 30 seconds
 
 ### Optimization
 
@@ -413,6 +484,7 @@ CMD ["uvicorn", "src.api_service:app", "--host", "0.0.0.0", "--port", "8000"]
 - Intelligent retry mechanisms for reliability
 - Efficient memory usage with streaming data
 - Optimized processing pipeline for improved throughput
+- Static export for optimal frontend performance
 
 ## Contributing
 
@@ -426,7 +498,8 @@ CMD ["uvicorn", "src.api_service:app", "--host", "0.0.0.0", "--port", "8000"]
 
 ### Code Standards
 
-- Follow PEP 8 style guidelines
+- Follow PEP 8 style guidelines for Python
+- Follow ESLint and Prettier for TypeScript/React
 - Add type hints for all functions
 - Include docstrings for public methods
 - Write tests for new functionality
@@ -435,7 +508,7 @@ CMD ["uvicorn", "src.api_service:app", "--host", "0.0.0.0", "--port", "8000"]
 ### Reporting Issues
 
 When reporting issues, please include:
-- System information (OS, Python version)
+- System information (OS, Python version, Node.js version)
 - Full error messages and stack traces
 - Steps to reproduce the issue
 - Expected vs actual behavior
@@ -453,6 +526,15 @@ For support and questions:
 - Review the example scripts for implementation patterns
 
 ## Changelog
+
+### Version 2.0.0 (2025-08-23)
+- **Major UI Overhaul**: Complete migration to Next.js 14 with modern React components
+- **New Frontend**: Beautiful responsive UI with TailwindCSS and shadcn/ui
+- **Enhanced UX**: Real-time status updates, progress tracking, and history management
+- **State Management**: Zustand-based global state with persistent storage
+- **Type Safety**: Full TypeScript implementation for better development experience
+- **Modern Architecture**: Separation of concerns with dedicated API client and utilities
+- **Production Ready**: Optimized build process with static export
 
 ### Version 1.0.0 (2025-08-21)
 - Complete web interface implementation
