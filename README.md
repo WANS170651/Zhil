@@ -158,10 +158,10 @@ Zhil is a comprehensive URL information collection and storage system that trans
 | `NOTION_TOKEN` | Notion integration token | Yes | Notion |
 | `NOTION_DATABASE_ID` | Target Notion database ID | Yes | Notion |
 | `DASHSCOPE_API_KEY` | Dashscope API key for LLM | Yes | Both |
-| `FEISHU_APP_ID` | Feishu application ID | No | Feishu |
-| `FEISHU_APP_SECRET` | Feishu application secret | No | Feishu |
-| `FEISHU_APP_TOKEN` | Feishu Bitable app token | No | Feishu |
-| `FEISHU_TABLE_ID` | Feishu Bitable table ID | No | Feishu |
+| `FEISHU_APP_ID` | Feishu application ID | Yes | Feishu |
+| `FEISHU_APP_SECRET` | Feishu application secret | Yes | Feishu |
+| `FEISHU_APP_TOKEN` | Feishu Bitable app token | Yes | Feishu |
+| `FEISHU_TABLE_ID` | Feishu Bitable table ID | Yes | Feishu |
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | No | Both |
 | `FUZZY_MATCH_THRESHOLD` | Fuzzy matching threshold (0-100) | No | Both |
 
