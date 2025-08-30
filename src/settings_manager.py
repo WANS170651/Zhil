@@ -20,6 +20,10 @@ class UserSettings:
     qwen_api_key: Optional[str] = None
     notion_api_key: Optional[str] = None
     notion_database_id: Optional[str] = None
+    feishu_app_id: Optional[str] = None
+    feishu_app_secret: Optional[str] = None
+    feishu_app_token: Optional[str] = None
+    feishu_table_id: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
@@ -61,7 +65,11 @@ class SettingsManager:
             self.config['DEFAULT'] = {
                 'qwen_api_key': '',
                 'notion_api_key': '',
-                'notion_database_id': ''
+                'notion_database_id': '',
+                'feishu_app_id': '',
+                'feishu_app_secret': '',
+                'feishu_app_token': '',
+                'feishu_table_id': ''
             }
             self.save_settings(UserSettings())
             logger.info(f"创建默认配置文件: {self.config_file}")
@@ -79,7 +87,11 @@ class SettingsManager:
             settings = UserSettings(
                 qwen_api_key=self.config.get('DEFAULT', 'qwen_api_key', fallback=''),
                 notion_api_key=self.config.get('DEFAULT', 'notion_api_key', fallback=''),
-                notion_database_id=self.config.get('DEFAULT', 'notion_database_id', fallback='')
+                notion_database_id=self.config.get('DEFAULT', 'notion_database_id', fallback=''),
+                feishu_app_id=self.config.get('DEFAULT', 'feishu_app_id', fallback=''),
+                feishu_app_secret=self.config.get('DEFAULT', 'feishu_app_secret', fallback=''),
+                feishu_app_token=self.config.get('DEFAULT', 'feishu_app_token', fallback=''),
+                feishu_table_id=self.config.get('DEFAULT', 'feishu_table_id', fallback='')
             )
             
             logger.info("用户设置加载成功")
@@ -102,6 +114,10 @@ class SettingsManager:
             self.config['DEFAULT']['qwen_api_key'] = settings.qwen_api_key or ''
             self.config['DEFAULT']['notion_api_key'] = settings.notion_api_key or ''
             self.config['DEFAULT']['notion_database_id'] = settings.notion_database_id or ''
+            self.config['DEFAULT']['feishu_app_id'] = settings.feishu_app_id or ''
+            self.config['DEFAULT']['feishu_app_secret'] = settings.feishu_app_secret or ''
+            self.config['DEFAULT']['feishu_app_token'] = settings.feishu_app_token or ''
+            self.config['DEFAULT']['feishu_table_id'] = settings.feishu_table_id or ''
             
             # 写入文件
             with open(self.config_file, 'w', encoding='utf-8') as f:
@@ -127,6 +143,14 @@ class SettingsManager:
                 current_settings.notion_api_key = updates['notion_api_key']
             if 'notion_database_id' in updates:
                 current_settings.notion_database_id = updates['notion_database_id']
+            if 'feishu_app_id' in updates:
+                current_settings.feishu_app_id = updates['feishu_app_id']
+            if 'feishu_app_secret' in updates:
+                current_settings.feishu_app_secret = updates['feishu_app_secret']
+            if 'feishu_app_token' in updates:
+                current_settings.feishu_app_token = updates['feishu_app_token']
+            if 'feishu_table_id' in updates:
+                current_settings.feishu_table_id = updates['feishu_table_id']
             
             # 保存更新后的设置
             if self.save_settings(current_settings):
@@ -147,7 +171,11 @@ class SettingsManager:
         effective_settings = UserSettings(
             qwen_api_key=user_settings.qwen_api_key or os.getenv('DASHSCOPE_API_KEY'),
             notion_api_key=user_settings.notion_api_key or os.getenv('NOTION_TOKEN'),
-            notion_database_id=user_settings.notion_database_id or os.getenv('NOTION_DATABASE_ID')
+            notion_database_id=user_settings.notion_database_id or os.getenv('NOTION_DATABASE_ID'),
+            feishu_app_id=user_settings.feishu_app_id or os.getenv('FEISHU_APP_ID'),
+            feishu_app_secret=user_settings.feishu_app_secret or os.getenv('FEISHU_APP_SECRET'),
+            feishu_app_token=user_settings.feishu_app_token or os.getenv('FEISHU_APP_TOKEN'),
+            feishu_table_id=user_settings.feishu_table_id or os.getenv('FEISHU_TABLE_ID')
         )
         
         return effective_settings
@@ -157,7 +185,11 @@ class SettingsManager:
         validation_results = {
             'qwen_api_key': bool(settings.qwen_api_key and len(settings.qwen_api_key) > 10),
             'notion_api_key': bool(settings.notion_api_key and len(settings.notion_api_key) > 10),
-            'notion_database_id': bool(settings.notion_database_id and len(settings.notion_database_id) > 10)
+            'notion_database_id': bool(settings.notion_database_id and len(settings.notion_database_id) > 10),
+            'feishu_app_id': bool(settings.feishu_app_id and len(settings.feishu_app_id) > 10),
+            'feishu_app_secret': bool(settings.feishu_app_secret and len(settings.feishu_app_secret) > 10),
+            'feishu_app_token': bool(settings.feishu_app_token and len(settings.feishu_app_token) > 10),
+            'feishu_table_id': bool(settings.feishu_table_id and len(settings.feishu_table_id) > 10)
         }
         
         return validation_results

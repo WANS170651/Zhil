@@ -19,6 +19,7 @@ import httpx
 from .config import config
 from .notion_schema import DatabaseSchema, get_database_schema, get_database_schema_async
 from .llm_schema_builder import build_function_call_schema, build_system_prompt
+from .feishu_schema_builder import get_feishu_schema, build_feishu_llm_function
 
 
 class ExtractionMode(Enum):
@@ -110,6 +111,43 @@ class AsyncLLMExtractor:
                        database_schema: DatabaseSchema) -> List[Dict[str, str]]:
         """构建消息列表"""
         system_prompt = build_system_prompt(database_schema)
+        
+        user_content = f"""
+请从以下网页内容中提取招聘信息：
+
+原始URL: {url}
+
+网页内容:
+{content}
+
+请严格按照字段定义提取信息，如果某些信息无法确定，请留空。
+""".strip()
+        
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content}
+        ]
+    
+    def _build_feishu_messages(self, content: str, url: str, fields: List[Any]) -> List[Dict[str, str]]:
+        """为飞书字段构建消息列表"""
+        # 构建系统提示词
+        field_descriptions = []
+        for field in fields:
+            field_descriptions.append(f"- {field.field_name}: {field.description}")
+        
+        system_prompt = f"""
+你是一个专业的招聘信息提取专家。请从网页内容中提取招聘相关信息，并按照以下字段格式输出：
+
+目标字段：
+{chr(10).join(field_descriptions)}
+
+提取要求：
+1. 严格按照字段名称输出，保持名称完全一致
+2. 如果某个字段信息无法找到，请留空（null）
+3. 日期格式使用 YYYY-MM-DD
+4. URL字段确保是完整的网址
+5. 文本字段去除多余的空格和换行符
+""".strip()
         
         user_content = f"""
 请从以下网页内容中提取招聘信息：
@@ -364,6 +402,126 @@ class AsyncLLMExtractor:
         except Exception as e:
             self.logger.error(f"❌ 异步LLM连接失败: {e}")
             return False
+    
+    async def extract_for_feishu_async(self, content: str, url: str, 
+                                     max_retries: int = 3) -> ExtractionResult:
+        """
+        专门为飞书字段提取信息的异步方法
+        
+        Args:
+            content: 网页内容
+            url: 原始URL
+            max_retries: 最大重试次数
+            
+        Returns:
+            ExtractionResult: 提取结果
+        """
+        start_time = time.time()
+        
+        try:
+            # 获取飞书Schema
+            feishu_schema = await get_feishu_schema()
+            if not feishu_schema:
+                return ExtractionResult(
+                    success=False,
+                    error="无法获取飞书字段Schema",
+                    processing_time=time.time() - start_time,
+                    mode="feishu_function_call"
+                )
+            
+            fields = feishu_schema.get("fields", [])
+            if not fields:
+                return ExtractionResult(
+                    success=False,
+                    error="飞书字段Schema为空",
+                    processing_time=time.time() - start_time,
+                    mode="feishu_function_call"
+                )
+            
+            # 构建函数Schema
+            function_schema = build_feishu_llm_function(fields)
+            messages = self._build_feishu_messages(content, url, fields)
+            
+            self.logger.info(f"🚀 开始飞书专用异步函数调用抽取，URL: {url[:50]}...")
+            
+            # 重试机制
+            last_error = None
+            for attempt in range(max_retries):
+                try:
+                    # 异步调用LLM
+                    response = await self.client.chat.completions.create(
+                        model=self.model,
+                        messages=messages,
+                        functions=[function_schema],
+                        function_call={"name": "extract_job_info_for_feishu"},
+                        temperature=0.1,
+                        max_tokens=2000
+                    )
+                    
+                    processing_time = time.time() - start_time
+                    
+                    # 解析响应
+                    choice = response.choices[0]
+                    if choice.message.function_call:
+                        function_call = choice.message.function_call
+                        if function_call.name == "extract_job_info_for_feishu":
+                            try:
+                                extracted_data = json.loads(function_call.arguments)
+                                
+                                # 确保投递入口字段正确设置
+                                if "投递入口" in extracted_data:
+                                    extracted_data["投递入口"] = url
+                                
+                                self.logger.info(f"✅ 飞书专用异步函数调用抽取成功，耗时: {processing_time:.2f}s")
+                                
+                                return ExtractionResult(
+                                    success=True,
+                                    data=extracted_data,
+                                    raw_response=function_call.arguments,
+                                    tokens_used=response.usage.total_tokens if response.usage else None,
+                                    processing_time=processing_time,
+                                    mode="feishu_function_call"
+                                )
+                            except json.JSONDecodeError as e:
+                                last_error = f"JSON解析失败: {e}"
+                                self.logger.warning(f"⚠️ 尝试 {attempt + 1}/{max_retries}: {last_error}")
+                                continue
+                        else:
+                            last_error = f"函数调用名称不匹配: {function_call.name}"
+                            self.logger.warning(f"⚠️ 尝试 {attempt + 1}/{max_retries}: {last_error}")
+                            continue
+                    else:
+                        last_error = "LLM未返回函数调用"
+                        self.logger.warning(f"⚠️ 尝试 {attempt + 1}/{max_retries}: {last_error}")
+                        continue
+                        
+                except Exception as e:
+                    last_error = f"LLM调用异常: {e}"
+                    self.logger.warning(f"⚠️ 尝试 {attempt + 1}/{max_retries}: {last_error}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1)  # 重试前等待
+                    continue
+            
+            # 所有重试都失败
+            processing_time = time.time() - start_time
+            self.logger.error(f"❌ 飞书专用异步函数调用抽取失败，所有重试用尽: {last_error}")
+            
+            return ExtractionResult(
+                success=False,
+                error=f"抽取失败: {last_error}",
+                processing_time=processing_time,
+                mode="feishu_function_call"
+            )
+            
+        except Exception as e:
+            processing_time = time.time() - start_time
+            self.logger.error(f"❌ 飞书专用异步抽取异常: {e}")
+            return ExtractionResult(
+                success=False,
+                error=f"异步抽取异常: {e}",
+                processing_time=processing_time,
+                mode="feishu_function_call"
+            )
 
 
 # 继续原有的_build_messages方法，但现在在同步类中

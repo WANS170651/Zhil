@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowUp, Loader2, CheckCircle, XCircle, Key, Database, Brain, Save, TestTube, Eye, EyeOff } from "lucide-react"
+import { ArrowUp, Loader2, CheckCircle, XCircle, Key, Database, Brain, Save, TestTube, Eye, EyeOff, Monitor, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
 import RevealOnView from "@/components/reveal-on-view"
 import { useSingleUrlProcessing, useBatchProcessing, useHistory, useSettings, ProcessingStatus } from "@/lib/store"
+import { PlatformChoice } from "@/lib/api"
 import { isValidUrl, parseBatchUrls, formatTimestamp, formatProcessingTime } from "@/lib/utils"
 
 type Props = {
@@ -45,13 +46,18 @@ export default function ProjectCard({
   const [settingsForm, setSettingsForm] = useState({
     qwen_api_key: "",
     notion_api_key: "",
-    notion_database_id: ""
+    notion_database_id: "",
+    feishu_app_id: "",
+    feishu_app_secret: "",
+    feishu_app_token: "",
+    feishu_table_id: ""
   })
   const [testResults, setTestResults] = useState<Record<string, boolean>>({})
   const [isTesting, setIsTesting] = useState(false)
   const [showPasswords, setShowPasswords] = useState({
     qwen_api_key: false,
-    notion_api_key: false
+    notion_api_key: false,
+    feishu_app_secret: false
   })
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   
@@ -86,7 +92,11 @@ export default function ProjectCard({
       setSettingsForm({
         qwen_api_key: settings.data.qwen_api_key || "",
         notion_api_key: settings.data.notion_api_key || "",
-        notion_database_id: settings.data.notion_database_id || ""
+        notion_database_id: settings.data.notion_database_id || "",
+        feishu_app_id: settings.data.feishu_app_id || "",
+        feishu_app_secret: settings.data.feishu_app_secret || "",
+        feishu_app_token: settings.data.feishu_app_token || "",
+        feishu_table_id: settings.data.feishu_table_id || ""
       })
     }
   }, [settings.data])
@@ -100,7 +110,7 @@ export default function ProjectCard({
     }
     
     try {
-      await singleUrl.process(url.trim())
+      await singleUrl.process(url.trim(), singleUrl.platform)
     } catch (error) {
       console.error('URL处理失败:', error)
     }
@@ -116,7 +126,7 @@ export default function ProjectCard({
     }
     
     try {
-      await batch.process(urlList)
+      await batch.process(urlList, batch.platform)
     } catch (error) {
       console.error('批量处理失败:', error)
     }
@@ -153,6 +163,18 @@ export default function ProjectCard({
       if (settingsForm.notion_database_id.trim()) {
         updates.notion_database_id = settingsForm.notion_database_id.trim()
       }
+      if (settingsForm.feishu_app_id.trim()) {
+        updates.feishu_app_id = settingsForm.feishu_app_id.trim()
+      }
+      if (settingsForm.feishu_app_secret.trim()) {
+        updates.feishu_app_secret = settingsForm.feishu_app_secret.trim()
+      }
+      if (settingsForm.feishu_app_token.trim()) {
+        updates.feishu_app_token = settingsForm.feishu_app_token.trim()
+      }
+      if (settingsForm.feishu_table_id.trim()) {
+        updates.feishu_table_id = settingsForm.feishu_table_id.trim()
+      }
 
       await settings.save(updates)
       console.log('设置保存成功')
@@ -177,6 +199,18 @@ export default function ProjectCard({
       if (settingsForm.notion_database_id.trim()) {
         testData.notion_database_id = settingsForm.notion_database_id.trim()
       }
+      if (settingsForm.feishu_app_id.trim()) {
+        testData.feishu_app_id = settingsForm.feishu_app_id.trim()
+      }
+      if (settingsForm.feishu_app_secret.trim()) {
+        testData.feishu_app_secret = settingsForm.feishu_app_secret.trim()
+      }
+      if (settingsForm.feishu_app_token.trim()) {
+        testData.feishu_app_token = settingsForm.feishu_app_token.trim()
+      }
+      if (settingsForm.feishu_table_id.trim()) {
+        testData.feishu_table_id = settingsForm.feishu_table_id.trim()
+      }
 
       const success = await settings.test(testData)
       
@@ -184,21 +218,29 @@ export default function ProjectCard({
       setTestResults({
         qwen_api_key: !!testData.qwen_api_key && success,
         notion_api_key: !!testData.notion_api_key && success,
-        notion_database_id: !!testData.notion_database_id && success
+        notion_database_id: !!testData.notion_database_id && success,
+        feishu_app_id: !!testData.feishu_app_id && success,
+        feishu_app_secret: !!testData.feishu_app_secret && success,
+        feishu_app_token: !!testData.feishu_app_token && success,
+        feishu_table_id: !!testData.feishu_table_id && success
       })
     } catch (error) {
       console.error('设置测试失败:', error)
       setTestResults({
         qwen_api_key: false,
         notion_api_key: false,
-        notion_database_id: false
+        notion_database_id: false,
+        feishu_app_id: false,
+        feishu_app_secret: false,
+        feishu_app_token: false,
+        feishu_table_id: false
       })
     } finally {
       setIsTesting(false)
     }
   }
 
-  const togglePasswordVisibility = (field: 'qwen_api_key' | 'notion_api_key') => {
+  const togglePasswordVisibility = (field: 'qwen_api_key' | 'notion_api_key' | 'feishu_app_secret') => {
     setShowPasswords(prev => ({
       ...prev,
       [field]: !prev[field]
@@ -276,6 +318,42 @@ export default function ProjectCard({
                   </Button>
                 </div>
                 
+                {/* Platform Selection */}
+                <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center gap-1 bg-white/10 rounded-full p-1 backdrop-blur-sm">
+                    <Button
+                      size="sm"
+                      variant={singleUrl.platform === PlatformChoice.NOTION_ONLY ? "default" : "ghost"}
+                      onClick={() => singleUrl.setPlatform(PlatformChoice.NOTION_ONLY)}
+                      disabled={singleUrl.isLoading}
+                      className="rounded-full h-7 px-3 text-xs font-medium"
+                    >
+                      <Database className="h-3 w-3 mr-1" />
+                      Notion
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={singleUrl.platform === PlatformChoice.FEISHU_ONLY ? "default" : "ghost"}
+                      onClick={() => singleUrl.setPlatform(PlatformChoice.FEISHU_ONLY)}
+                      disabled={singleUrl.isLoading}
+                      className="rounded-full h-7 px-3 text-xs font-medium"
+                    >
+                      <Monitor className="h-3 w-3 mr-1" />
+                      飞书
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={singleUrl.platform === PlatformChoice.BOTH ? "default" : "ghost"}
+                      onClick={() => singleUrl.setPlatform(PlatformChoice.BOTH)}
+                      disabled={singleUrl.isLoading}
+                      className="rounded-full h-7 px-3 text-xs font-medium"
+                    >
+                      <Layers className="h-3 w-3 mr-1" />
+                      双写
+                    </Button>
+                  </div>
+                </div>
+                
                 {/* Status Display */}
                 {singleUrl.status !== ProcessingStatus.IDLE && (
                   <div className="flex items-center justify-center gap-2 text-xs">
@@ -332,6 +410,42 @@ export default function ProjectCard({
                       <ArrowUp className="h-3 w-3" />
                     )}
                   </Button>
+                </div>
+                
+                {/* Platform Selection */}
+                <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center gap-1 bg-white/10 rounded-full p-1 backdrop-blur-sm">
+                    <Button
+                      size="sm"
+                      variant={batch.platform === PlatformChoice.NOTION_ONLY ? "default" : "ghost"}
+                      onClick={() => batch.setPlatform(PlatformChoice.NOTION_ONLY)}
+                      disabled={batch.status === ProcessingStatus.PROCESSING}
+                      className="rounded-full h-7 px-3 text-xs font-medium"
+                    >
+                      <Database className="h-3 w-3 mr-1" />
+                      Notion
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={batch.platform === PlatformChoice.FEISHU_ONLY ? "default" : "ghost"}
+                      onClick={() => batch.setPlatform(PlatformChoice.FEISHU_ONLY)}
+                      disabled={batch.status === ProcessingStatus.PROCESSING}
+                      className="rounded-full h-7 px-3 text-xs font-medium"
+                    >
+                      <Monitor className="h-3 w-3 mr-1" />
+                      飞书
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={batch.platform === PlatformChoice.BOTH ? "default" : "ghost"}
+                      onClick={() => batch.setPlatform(PlatformChoice.BOTH)}
+                      disabled={batch.status === ProcessingStatus.PROCESSING}
+                      className="rounded-full h-7 px-3 text-xs font-medium"
+                    >
+                      <Layers className="h-3 w-3 mr-1" />
+                      双写
+                    </Button>
+                  </div>
                 </div>
                 
                 {/* Batch Status Display */}
@@ -465,17 +579,31 @@ export default function ProjectCard({
                               </div>
                             )}
 
-                            {/* Notion Link */}
-                            {record.success && record.notionPageUrl && (
-                              <a
-                                href={record.notionPageUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs text-blue-400/80 hover:text-blue-400 transition-colors mt-1"
-                              >
-                                <span>→ 查看Notion页面</span>
-                              </a>
-                            )}
+                            {/* Platform Links */}
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {record.success && record.notionPageUrl && (
+                                <a
+                                  href={record.notionPageUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-blue-400/80 hover:text-blue-400 transition-colors"
+                                >
+                                  <Database className="h-3 w-3" />
+                                  <span>Notion</span>
+                                </a>
+                              )}
+                              {record.success && record.feishuRecordUrl && (
+                                <a
+                                  href={record.feishuRecordUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-green-400/80 hover:text-green-400 transition-colors"
+                                >
+                                  <Monitor className="h-3 w-3" />
+                                  <span>飞书</span>
+                                </a>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -598,6 +726,100 @@ export default function ProjectCard({
                     placeholder="留空则使用环境变量..."
                     value={settingsForm.notion_database_id}
                     onChange={(e) => handleSettingsChange('notion_database_id', e.target.value)}
+                    disabled={settings.isLoading}
+                    className="bg-white/5 border-white/20 text-white text-xs placeholder:text-white/40 focus:bg-white/10"
+                  />
+                </div>
+
+                {/* 飞书配置分隔线 */}
+                <div className="flex items-center my-6">
+                  <div className="flex-1 h-px bg-white/10"></div>
+                  <div className="px-3 text-xs text-white/50 font-medium">飞书多维表格配置</div>
+                  <div className="flex-1 h-px bg-white/10"></div>
+                </div>
+
+                {/* 飞书应用ID */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-white/60" />
+                    <label className="text-xs text-white/70 font-medium">飞书应用ID</label>
+                    {testResults.feishu_app_id === true && <CheckCircle className="h-3 w-3 text-green-400" />}
+                    {testResults.feishu_app_id === false && <XCircle className="h-3 w-3 text-red-400" />}
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="留空则使用环境变量..."
+                    value={settingsForm.feishu_app_id}
+                    onChange={(e) => handleSettingsChange('feishu_app_id', e.target.value)}
+                    disabled={settings.isLoading}
+                    className="bg-white/5 border-white/20 text-white text-xs placeholder:text-white/40 focus:bg-white/10"
+                  />
+                </div>
+
+                {/* 飞书应用Secret */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-white/60" />
+                    <label className="text-xs text-white/70 font-medium">飞书应用Secret</label>
+                    {testResults.feishu_app_secret === true && <CheckCircle className="h-3 w-3 text-green-400" />}
+                    {testResults.feishu_app_secret === false && <XCircle className="h-3 w-3 text-red-400" />}
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type={showPasswords.feishu_app_secret ? "text" : "password"}
+                      placeholder="留空则使用环境变量..."
+                      value={settingsForm.feishu_app_secret}
+                      onChange={(e) => handleSettingsChange('feishu_app_secret', e.target.value)}
+                      disabled={settings.isLoading}
+                      className="bg-white/5 border-white/20 text-white text-xs placeholder:text-white/40 focus:bg-white/10 pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => togglePasswordVisibility('feishu_app_secret')}
+                    >
+                      {showPasswords.feishu_app_secret ? (
+                        <EyeOff className="h-4 w-4 text-white/60" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-white/60" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 飞书多维表格Token */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Database className="h-4 w-4 text-white/60" />
+                    <label className="text-xs text-white/70 font-medium">飞书多维表格Token</label>
+                    {testResults.feishu_app_token === true && <CheckCircle className="h-3 w-3 text-green-400" />}
+                    {testResults.feishu_app_token === false && <XCircle className="h-3 w-3 text-red-400" />}
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="留空则使用环境变量..."
+                    value={settingsForm.feishu_app_token}
+                    onChange={(e) => handleSettingsChange('feishu_app_token', e.target.value)}
+                    disabled={settings.isLoading}
+                    className="bg-white/5 border-white/20 text-white text-xs placeholder:text-white/40 focus:bg-white/10"
+                  />
+                </div>
+
+                {/* 飞书表格ID */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Database className="h-4 w-4 text-white/60" />
+                    <label className="text-xs text-white/70 font-medium">飞书表格ID</label>
+                    {testResults.feishu_table_id === true && <CheckCircle className="h-3 w-3 text-green-400" />}
+                    {testResults.feishu_table_id === false && <XCircle className="h-3 w-3 text-red-400" />}
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="留空则使用环境变量..."
+                    value={settingsForm.feishu_table_id}
+                    onChange={(e) => handleSettingsChange('feishu_table_id', e.target.value)}
                     disabled={settings.isLoading}
                     className="bg-white/5 border-white/20 text-white text-xs placeholder:text-white/40 focus:bg-white/10"
                   />

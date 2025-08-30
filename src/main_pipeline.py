@@ -21,6 +21,8 @@ from .notion_schema import get_database_schema, get_database_schema_async, Datab
 from .extractor import extractor, async_extractor, ExtractionMode
 from .normalizer import normalizer
 from .notion_writer import notion_writer, async_notion_writer, WriteOperation, WriteResult
+from .feishu_writer import feishu_writer, async_feishu_writer, FeishuWriteOperation, FeishuWriteResult, initialize_feishu_writers
+from .feishu_normalizer import feishu_normalizer
 from .config import config
 
 
@@ -31,6 +33,8 @@ class ProcessingStage(Enum):
     EXTRACTION = "extraction"
     NORMALIZATION = "normalization"
     WRITING = "writing"
+    FEISHU_NORMALIZATION = "feishu_normalization"
+    FEISHU_WRITING = "feishu_writing"
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -56,6 +60,8 @@ class ProcessingResult:
     extraction_result: Optional[Dict[str, Any]] = None
     normalization_result: Optional[Dict[str, Any]] = None
     writing_result: Optional[WriteResult] = None
+    feishu_normalization_result: Optional[Dict[str, Any]] = None
+    feishu_writing_result: Optional[FeishuWriteResult] = None
     
     # 时间统计
     start_time: Optional[float] = None
@@ -188,6 +194,16 @@ class AsyncMainPipeline:
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
             self.logger.setLevel(logging.INFO)
+        
+        # 尝试初始化飞书写入器
+        try:
+            init_result = initialize_feishu_writers()
+            if init_result:
+                self.logger.info("✅ 飞书写入器初始化成功")
+            else:
+                self.logger.warning("⚠️ 飞书写入器初始化失败，将跳过飞书写入功能")
+        except Exception as e:
+            self.logger.warning(f"⚠️ 飞书写入器初始化异常: {e}，将跳过飞书写入功能")
     
     async def _load_database_schema_async(self) -> bool:
         """异步加载数据库Schema"""
@@ -317,6 +333,208 @@ class AsyncMainPipeline:
             self.logger.error(f"❌ 数据归一化异常: {e}")
             return False
     
+    async def _extract_for_feishu_async(self, scraped_content: str, url: str, result: ProcessingResult) -> bool:
+        """使用飞书专用LLM提取器提取数据"""
+        stage_start = time.time()
+        
+        try:
+            result.stage = ProcessingStage.FEISHU_NORMALIZATION
+            result.status = ProcessingStatus.IN_PROGRESS
+            
+            self.logger.info(f"🔧 开始飞书专用信息提取...")
+            
+            # 使用飞书专用LLM提取器
+            feishu_extraction_result = await async_extractor.extract_for_feishu_async(
+                content=scraped_content,
+                url=url,
+                max_retries=self.max_retries
+            )
+            
+            if feishu_extraction_result.success:
+                # 直接使用提取的数据作为飞书规范化结果
+                feishu_data = feishu_extraction_result.data or {}
+                
+                # 清理飞书数据，移除空值和格式化字段
+                cleaned_feishu_data = self._clean_feishu_data(feishu_data)
+                
+                # 构建规范化结果
+                feishu_normalized_result = {
+                    "success": True,
+                    "feishu_payload": {
+                        "fields": cleaned_feishu_data
+                    },
+                    "error_count": 0,
+                    "warning_count": 0,
+                    "processed_fields": len(cleaned_feishu_data)
+                }
+                
+                result.feishu_normalization_result = feishu_normalized_result
+                result.status = ProcessingStatus.SUCCESS
+                result.stage_times["feishu_normalization"] = time.time() - stage_start
+                
+                self.logger.info(f"✅ 飞书专用信息提取成功，提取 {len(feishu_data)} 个字段")
+                
+                # 记录提取的关键信息
+                if "公司名称" in feishu_data:
+                    self.logger.info(f"   📝 公司: {feishu_data.get('公司名称', '未知')}")
+                if "职位" in feishu_data:
+                    self.logger.info(f"   💼 职位: {feishu_data.get('职位', '未知')}")
+                
+                return True
+            else:
+                result.status = ProcessingStatus.FAILED
+                result.error_message = f"飞书专用信息提取失败: {feishu_extraction_result.error or '未知错误'}"
+                result.error_stage = ProcessingStage.FEISHU_NORMALIZATION
+                
+                self.logger.error(f"❌ 飞书专用信息提取失败: {result.error_message}")
+                return False
+                
+        except Exception as e:
+            result.status = ProcessingStatus.FAILED
+            result.error_message = f"飞书专用信息提取异常: {e}"
+            result.error_stage = ProcessingStage.FEISHU_NORMALIZATION
+            result.stage_times["feishu_normalization"] = time.time() - stage_start
+            
+            self.logger.error(f"❌ 飞书专用信息提取异常: {e}")
+            return False
+    
+    def _clean_feishu_data(self, feishu_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        清理飞书数据，移除空值和格式化特殊字段
+        
+        Args:
+            feishu_data: 原始飞书数据
+            
+        Returns:
+            Dict: 清理后的数据
+        """
+        cleaned_data = {}
+        
+        for field_name, value in feishu_data.items():
+            # 跳过None值
+            if value is None:
+                self.logger.debug(f"   🗑️ 跳过空值字段: {field_name}")
+                continue
+            
+            # 处理不同类型的字段
+            if field_name == "备注" and isinstance(value, list) and len(value) == 0:
+                # 多选字段的空数组跳过
+                self.logger.debug(f"   🗑️ 跳过空多选字段: {field_name}")
+                continue
+            elif field_name == "投递入口" and isinstance(value, str):
+                # URL字段格式化 - 飞书需要对象格式 {"text": "显示文本", "link": "URL"}
+                if value.startswith("http://") or value.startswith("https://"):
+                    cleaned_data[field_name] = {
+                        "text": "投递链接",  # 显示文本
+                        "link": value      # 实际URL
+                    }
+                else:
+                    self.logger.warning(f"   ⚠️ 跳过无效URL字段: {field_name}={value}")
+                    continue
+            elif field_name == "日期":
+                # 日期字段验证和转换
+                if isinstance(value, str) and value.strip():
+                    import re
+                    if re.match(r'^\d{4}-\d{2}-\d{2}$', value.strip()):
+                        # 转换为时间戳（毫秒）
+                        from datetime import datetime
+                        try:
+                            dt = datetime.strptime(value.strip(), '%Y-%m-%d')
+                            timestamp_ms = int(dt.timestamp() * 1000)
+                            cleaned_data[field_name] = timestamp_ms
+                        except ValueError:
+                            self.logger.warning(f"   ⚠️ 跳过无效日期格式: {field_name}={value}")
+                            continue
+                    else:
+                        self.logger.warning(f"   ⚠️ 跳过无效日期格式: {field_name}={value}")
+                        continue
+                elif isinstance(value, (int, float)):
+                    # 已经是时间戳格式
+                    cleaned_data[field_name] = int(value)
+                else:
+                    # 其他格式跳过
+                    self.logger.debug(f"   🗑️ 跳过无效日期字段: {field_name}={value}")
+                    continue
+            elif field_name == "状态" and isinstance(value, str) and value.strip():
+                # 单选字段，确保非空
+                cleaned_data[field_name] = value.strip()
+            elif isinstance(value, str) and value.strip():
+                # 其他文本字段，去除空白
+                cleaned_data[field_name] = value.strip()
+            elif isinstance(value, (int, float, bool)):
+                # 数字和布尔值直接保留
+                cleaned_data[field_name] = value
+            elif isinstance(value, list) and len(value) > 0:
+                # 非空列表保留
+                cleaned_data[field_name] = value
+            else:
+                self.logger.debug(f"   🗑️ 跳过其他类型空值: {field_name}={value}")
+        
+        self.logger.info(f"   🧹 数据清理完成，保留 {len(cleaned_data)}/{len(feishu_data)} 个字段")
+        return cleaned_data
+    
+    async def _write_to_feishu_async(self, feishu_normalized_data: Dict[str, Any], result: ProcessingResult) -> bool:
+        """异步写入飞书多维表格"""
+        stage_start = time.time()
+        
+        try:
+            result.stage = ProcessingStage.FEISHU_WRITING
+            result.status = ProcessingStatus.IN_PROGRESS
+            
+            self.logger.info(f"📋 开始异步写入飞书多维表格...")
+            
+            # 检查飞书写入器是否可用
+            from .feishu_writer import async_feishu_writer as current_async_feishu_writer
+            if current_async_feishu_writer is None:
+                result.status = ProcessingStatus.SUCCESS
+                result.stage = ProcessingStage.COMPLETED
+                result.error_message = "飞书写入器未配置或未初始化"
+                result.error_stage = ProcessingStage.FEISHU_WRITING
+                self.logger.warning(f"⚠️ 飞书写入器未配置，跳过飞书写入")
+                return True  # 返回True，因为这不是错误，只是跳过
+            
+            # 获取规范化后的飞书字段
+            feishu_fields = feishu_normalized_data.get("feishu_payload", {}).get("fields", {})
+            
+            if not feishu_fields:
+                result.status = ProcessingStatus.FAILED
+                result.error_message = "飞书字段数据为空"
+                result.error_stage = ProcessingStage.FEISHU_WRITING
+                
+                self.logger.error(f"❌ 飞书字段数据为空")
+                return False
+            
+            # 异步写入飞书
+            feishu_write_result = await current_async_feishu_writer.create_single_record_async(
+                fields=feishu_fields,
+                use_user_token=False  # 使用tenant token，避免OAuth流程
+            )
+            
+            if feishu_write_result.success:
+                result.feishu_writing_result = feishu_write_result
+                result.status = ProcessingStatus.SUCCESS
+                result.stage_times["feishu_writing"] = time.time() - stage_start
+                
+                self.logger.info(f"✅ 异步飞书写入成功，记录ID: {feishu_write_result.record_id}")
+                
+                return True
+            else:
+                result.status = ProcessingStatus.FAILED
+                result.error_message = f"异步飞书写入失败: {feishu_write_result.error_message}"
+                result.error_stage = ProcessingStage.FEISHU_WRITING
+                
+                self.logger.error(f"❌ 异步飞书写入失败: {feishu_write_result.error_message}")
+                return False
+                
+        except Exception as e:
+            result.status = ProcessingStatus.FAILED
+            result.error_message = f"异步飞书写入异常: {e}"
+            result.error_stage = ProcessingStage.FEISHU_WRITING
+            result.stage_times["feishu_writing"] = time.time() - stage_start
+            
+            self.logger.error(f"❌ 异步飞书写入异常: {e}")
+            return False
+
     async def _write_to_notion_async(self, normalized_data: Dict[str, Any], result: ProcessingResult) -> bool:
         """异步写入Notion数据库"""
         stage_start = time.time()
@@ -409,6 +627,21 @@ class AsyncMainPipeline:
             # 6. 异步写入Notion
             if not await self._write_to_notion_async(result.normalization_result, result):
                 return result
+            
+            # 7. 飞书专用信息提取（可选）
+            if not await self._extract_for_feishu_async(result.scraping_result, url, result):
+                # 飞书专用提取失败不影响整体流程，只记录警告
+                self.logger.warning(f"⚠️ 飞书专用信息提取失败，但继续完成处理")
+            else:
+                # 8. 异步写入飞书多维表格（可选）
+                if not await self._write_to_feishu_async(result.feishu_normalization_result, result):
+                    # 飞书写入失败不影响整体流程，只记录警告
+                    self.logger.warning(f"⚠️ 飞书写入失败，但主处理流程已完成")
+            
+            # 确保处理完成状态
+            if result.status == ProcessingStatus.SUCCESS and result.stage != ProcessingStage.COMPLETED:
+                result.stage = ProcessingStage.COMPLETED
+                result.end_time = time.time()
             
             self.logger.info(f"🎉 异步URL处理完成: {url} (耗时: {result.total_time:.2f}s)")
             

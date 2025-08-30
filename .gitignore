@@ -147,6 +147,7 @@ Thumbs.db
 # Project specific
 config/config.py
 config/*.env
+config/user_settings.ini
 *.env
 .env.local
 .env.development

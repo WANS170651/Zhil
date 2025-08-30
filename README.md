@@ -10,6 +10,7 @@
 ![TypeScript](https://img.shields.io/badge/Language-TypeScript-blue)
 ![LLM](https://img.shields.io/badge/Powered%20by-LLM-orange)
 ![Notion](https://img.shields.io/badge/Integration-Notion-black)
+![Feishu](https://img.shields.io/badge/Integration-Feishu%20Bitable-green)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-green)
 
 ---
@@ -20,9 +21,9 @@
 
 ## Overview
 
-Zhil is a comprehensive URL information collection and storage system that transforms web content into structured Notion database records. It features a modern Next.js frontend with a beautiful, responsive UI and a robust Python FastAPI backend powered by AI/LLM technology.
+Zhil is a comprehensive URL information collection and storage system that transforms web content into structured database records. It features a modern Next.js frontend with a beautiful, responsive UI and a robust Python FastAPI backend powered by AI/LLM technology. The system supports **dual-platform storage** - simultaneously writing to both **Notion databases** and **Feishu Bitable** for maximum data security and accessibility.
 
-<img src="images/webscreenshot1.png" alt="webscreenshot1"> 
+<img src="images/New_HomePage.png" alt="New_HomePage"> 
 <img src="images/webscreenshot2.png" alt="webscreenshot1"> 
 
 ### Key Features
@@ -30,8 +31,10 @@ Zhil is a comprehensive URL information collection and storage system that trans
 - **Modern Web Interface**: Beautiful Next.js 14 frontend with TailwindCSS and shadcn/ui components
 - **Intelligent Web Scraping**: Playwright-based scraping with JavaScript rendering support
 - **AI-Powered Extraction**: Large Language Model (LLM) integration for structured data extraction
-- **Dynamic Schema Adaptation**: Automatic adaptation to any Notion database structure
-- **Data Normalization**: Intelligent data cleaning and validation with fuzzy matching
+- **Dual-Platform Storage**: **Simultaneous writing to Notion and Feishu Bitable**
+- **Dynamic Schema Adaptation**: Automatic field detection and LLM prompt adjustment for both platforms
+- **Smart Data Normalization**: Intelligent data cleaning with platform-specific field formatting
+- **Field Type Handling**: Proper handling of URL fields, date timestamps, and multi-select fields
 - **Duplicate Detection**: URL-based deduplication with smart upsert operations
 - **Batch Processing**: Support for bulk URL processing with progress tracking
 - **Real-time Status**: Live processing status updates with progress indicators
@@ -60,9 +63,14 @@ Zhil is a comprehensive URL information collection and storage system that trans
 └───┬─────────┬─────────┬─────────┬─────────┬───────────────┬─────┘
     │         │         │         │         │               │
 ┌───▼───┐ ┌───▼───┐ ┌───▼───┐ ┌───▼───┐ ┌───▼───┐     ┌───▼───┐
-│ Web   │ │ LLM   │ │ Data  │ │Notion │ │Notion │     │Config │
-│Scraper│ │Extract│ │Normal │ │Schema │ │Writer │     │ Mgmt  │
+│ Web   │ │ LLM   │ │ Data  │ │Notion │ │Feishu │     │Config │
+│Scraper│ │Extract│ │Normal │ │Schema │ │Bitable│     │ Mgmt  │
 └───────┘ └───────┘ └───────┘ └───────┘ └───────┘     └───────┘
+                              │         │
+                         ┌────▼────┐ ┌──▼──┐
+                         │Notion   │ │Feishu│
+                         │Writer   │ │Writer│
+                         └─────────┘ └──────┘
 ```
 
 ### Technology Stack
@@ -71,9 +79,9 @@ Zhil is a comprehensive URL information collection and storage system that trans
 - **Backend**: Python 3.8+, FastAPI, Uvicorn
 - **Web Scraping**: Playwright, html2text
 - **AI/ML**: OpenAI SDK (Qwen model), Function Calling
-- **Database**: Notion API
+- **Databases**: Notion API, Feishu Bitable API
 - **State Management**: Zustand
-- **HTTP Client**: Axios
+- **HTTP Client**: Axios, httpx
 - **Testing**: pytest, httpx
 - **Utilities**: pydantic, cachetools, fuzzywuzzy
 
@@ -84,6 +92,7 @@ Zhil is a comprehensive URL information collection and storage system that trans
 - Python 3.8 or higher
 - Node.js 18+ and pnpm
 - Notion account with API access
+- Feishu account with Bitable access (optional)
 - Dashscope API key for LLM services
 
 ### Setup
@@ -126,22 +135,35 @@ Zhil is a comprehensive URL information collection and storage system that trans
    
    Edit `.env` file with your credentials:
    ```env
+   # Required: Notion Configuration
    NOTION_TOKEN=your_notion_integration_token
    NOTION_DATABASE_ID=your_notion_database_id
+   
+   # Required: LLM Configuration
    DASHSCOPE_API_KEY=your_dashscope_api_key
+   
+   # Optional: Feishu Configuration (for dual-platform storage)
+   FEISHU_APP_ID=your_feishu_app_id
+   FEISHU_APP_SECRET=your_feishu_app_secret
+   FEISHU_APP_TOKEN=your_feishu_app_token
+   FEISHU_TABLE_ID=your_feishu_table_id
    ```
 
 ## Configuration
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `NOTION_TOKEN` | Notion integration token | Yes |
-| `NOTION_DATABASE_ID` | Target Notion database ID | Yes |
-| `DASHSCOPE_API_KEY` | Dashscope API key for LLM | Yes |
-| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | No |
-| `FUZZY_MATCH_THRESHOLD` | Fuzzy matching threshold (0-100) | No |
+| Variable | Description | Required | Platform |
+|----------|-------------|----------|----------|
+| `NOTION_TOKEN` | Notion integration token | Yes | Notion |
+| `NOTION_DATABASE_ID` | Target Notion database ID | Yes | Notion |
+| `DASHSCOPE_API_KEY` | Dashscope API key for LLM | Yes | Both |
+| `FEISHU_APP_ID` | Feishu application ID | No | Feishu |
+| `FEISHU_APP_SECRET` | Feishu application secret | No | Feishu |
+| `FEISHU_APP_TOKEN` | Feishu Bitable app token | No | Feishu |
+| `FEISHU_TABLE_ID` | Feishu Bitable table ID | No | Feishu |
+| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | No | Both |
+| `FUZZY_MATCH_THRESHOLD` | Fuzzy matching threshold (0-100) | No | Both |
 
 ### Web Interface Settings
 
@@ -149,9 +171,9 @@ The system includes a **Settings** interface that allows users to configure API 
 
 1. **Access Settings**: Navigate to the "Settings" tab in the web interface
 2. **Configure API Keys**: 
-   - Enter your Qwen LLM API Key
-   - Enter your Notion API Key  
-   - Enter your Notion Database ID
+   - **LLM Configuration**: Enter your Qwen LLM API Key
+   - **Notion Configuration**: Enter your Notion API Key and Database ID
+   - **Feishu Configuration**: Enter your Feishu Bitable credentials (optional)
 3. **Save Settings**: Click "Save Settings" to store your configuration
 4. **Test Connection**: Use "Test Connection" to verify your API keys work correctly
 
@@ -159,13 +181,22 @@ The system includes a **Settings** interface that allows users to configure API 
 - API keys are displayed as dots (••••••••••••••••) for security
 - If settings are left empty, the system will use environment variables as fallback
 - Settings are stored in `config/user_settings.ini` and take priority over environment variables
+- **Feishu configuration is optional** - the system works perfectly with Notion only
 
-### Notion Database Setup
+### Database Setup
 
+#### Notion Database Setup
 1. Create a Notion database with desired fields
 2. Create a Notion integration and get the token
 3. Share the database with your integration
 4. Copy the database ID from the URL
+
+#### Feishu Bitable Setup (Optional)
+1. Create a Feishu application at [飞书开放平台](https://open.feishu.cn/)
+2. Configure permissions: `bitable:app`, `base:record:create`, `base:record:read`
+3. Create or open a Feishu Bitable
+4. Extract `app_token` and `table_id` from the Bitable URL
+5. Configure the application with your credentials
 
 ## Usage
 
@@ -183,7 +214,7 @@ The system includes a **Settings** interface that allows users to configure API 
 3. **Use the interface**
    - **Single URL Processing**: Enter URL and click process with real-time status
    - **Batch Processing**: Enter multiple URLs (one per line) with progress tracking
-   - **Processing Results**: View history with status indicators and Notion links
+   - **Processing Results**: View history with status indicators and database links
    - **System Settings**: Configure API keys and test connections
    - **System Status**: Monitor pipeline health and configuration
 
@@ -202,16 +233,39 @@ The system includes a **Settings** interface that allows users to configure API 
 - **Status Indicators**: Success/Error icons with color coding
 - **Export Functionality**: Export processing history as JSON
 - **Clear History**: One-click history clearing
-- **Notion Links**: Direct links to created Notion pages
+- **Database Links**: Direct links to created Notion pages and Feishu records
 
 ### API Usage
 
-#### Single URL Processing
+#### Single URL Processing (Dual-Platform Storage)
 
 ```bash
 curl -X POST "http://localhost:8000/ingest/url" \
      -H "Content-Type: application/json" \
      -d '{"url": "https://example.com/job-posting"}'
+```
+
+**Response includes both Notion and Feishu results:**
+```json
+{
+  "success": true,
+  "message": "Processing completed successfully",
+  "url": "https://example.com",
+  "result": {
+    "stage": "completed",
+    "extracted_data": {...},
+    "writing_result": {
+      "success": true,
+      "operation": "create",
+      "page_id": "notion_page_id"
+    },
+    "feishu_writing_result": {
+      "success": true,
+      "operation": "create",
+      "record_id": "feishu_record_id"
+    }
+  }
+}
 ```
 
 #### Batch URL Processing
@@ -276,7 +330,16 @@ python async_usage_example.py
   "result": {
     "stage": "completed",
     "extracted_data": {...},
-    "notion_page_url": "https://notion.so/...",
+    "writing_result": {
+      "success": true,
+      "operation": "create",
+      "page_id": "notion_page_id"
+    },
+    "feishu_writing_result": {
+      "success": true,
+      "operation": "create",
+      "record_id": "feishu_record_id"
+    },
     "processing_time": 10.5
   }
 }
@@ -306,6 +369,9 @@ Notion_API/
 │   ├── extractor.py              # AI information extraction
 │   ├── normalizer.py             # Data cleaning and validation
 │   ├── notion_writer.py          # Notion API interaction
+│   ├── feishu_writer.py          # Feishu Bitable API interaction
+│   ├── feishu_normalizer.py      # Feishu data normalization
+│   ├── feishu_schema_builder.py  # Feishu dynamic schema generation
 │   ├── main_pipeline.py          # Main processing pipeline
 │   ├── api_service.py            # FastAPI web service
 │   └── settings_manager.py       # Settings management
@@ -328,6 +394,7 @@ Notion_API/
 ├── test_async_performance.py     # Performance testing
 ├── test_async_api.py            # API testing
 ├── async_usage_example.py       # Usage examples
+├── FEISHU_INTEGRATION.md        # Feishu integration documentation
 └── requirements.txt              # Python dependencies
 ```
 
@@ -370,17 +437,36 @@ Notion_API/
 - Upsert operations (create/update)
 - Batch processing support
 
+#### FeishuWriter (`src/feishu_writer.py`)
+- Feishu Bitable API integration with automatic token refresh
+- Dynamic field schema fetching and caching
+- Batch record creation with retry mechanisms
+- Connection testing and error handling
+
+#### FeishuNormalizer (`src/feishu_normalizer.py`)
+- Feishu-specific data normalization
+- Field mapping and type conversion
+- Bitable-compatible payload generation
+
+#### FeishuSchemaBuilder (`src/feishu_schema_builder.py`)
+- Dynamic Feishu field schema generation
+- LLM function schema building based on actual table fields
+- Automatic field type detection and mapping
+
 #### MainPipeline (`src/main_pipeline.py`)
 - End-to-end processing orchestration
+- Dual-platform writing (Notion + Feishu) with error isolation
 - Stage-based processing with error recovery
 - Performance monitoring and reporting
+- Platform-specific data extraction and normalization
+- Intelligent data cleaning for field type compatibility
 
 ### Adding New Features
 
 1. **New Data Sources**: Extend `WebScraper` class or create new scrapers
 2. **New Field Types**: Update `Normalizer` field validation logic
 3. **New LLM Providers**: Extend `Extractor` with new provider support
-4. **New Output Formats**: Add new writers alongside `NotionWriter`
+4. **New Output Formats**: Add new writers alongside `NotionWriter` and `FeishuWriter`
 5. **Frontend Components**: Add new React components in `Zhil_template/components/`
 
 ## Deployment
@@ -466,8 +552,11 @@ CMD ["uvicorn", "src.api_service:app", "--host", "0.0.0.0", "--port", "8000"]
 1. **Check system status**: Visit `/health` endpoint
 2. **Review logs**: Check application logs for errors
 3. **Verify configuration**: Ensure all environment variables are set
-4. **Test connections**: Verify Notion and LLM API connectivity
+4. **Test connections**: Verify Notion, Feishu, and LLM API connectivity
 5. **Run diagnostics**: Use performance tests for system checks
+6. **Field format issues**: Check Feishu field types and ensure proper formatting
+7. **Token expiration**: Automatic refresh handles most token issues
+8. **Schema mismatches**: Dynamic field detection resolves most field name issues
 
 ## Performance
 
@@ -478,6 +567,9 @@ CMD ["uvicorn", "src.api_service:app", "--host", "0.0.0.0", "--port", "8000"]
 - **Web Interface Load Time**: < 2 seconds
 - **API Response Time**: < 500ms for non-processing endpoints
 - **Frontend Build Time**: < 30 seconds
+- **Dual-Platform Writing**: < 1 second additional overhead
+- **Feishu Field Detection**: < 500ms for dynamic schema fetching
+- **Token Refresh**: Automatic with < 100ms overhead
 
 ### Optimization
 
@@ -486,6 +578,9 @@ CMD ["uvicorn", "src.api_service:app", "--host", "0.0.0.0", "--port", "8000"]
 - Efficient memory usage with streaming data
 - Optimized processing pipeline for improved throughput
 - Static export for optimal frontend performance
+- Token caching for Feishu API efficiency
+- Dynamic field schema adaptation for optimal LLM extraction
+- Platform-specific data normalization for field compatibility
 
 ## Contributing
 
@@ -525,8 +620,43 @@ For support and questions:
 - Examine the test files for usage examples
 - Use the performance tests for system diagnostics
 - Review the example scripts for implementation patterns
+- Read `FEISHU_INTEGRATION.md` for detailed Feishu setup instructions
+- **Feishu Integration**: See troubleshooting section for common field format issues
+- **Field Mapping**: Dynamic schema detection automatically handles most field name mismatches
+- **Token Management**: Automatic refresh handles token expiration seamlessly
+
+## Recent Improvements & Bug Fixes
+
+### Field Format Compatibility (Latest)
+- **URL Field Format**: Fixed `URLFieldConvFail` error by implementing proper URL object format `{"text": "显示文本", "link": "URL"}`
+- **Date Field Format**: Resolved `DatetimeFieldConvFail` error by converting dates to Feishu timestamp format (milliseconds)
+- **Multi-Select Fields**: Proper handling of empty arrays and null values for multi-select fields
+- **Data Cleaning**: Enhanced data validation and cleaning for all field types
+
+### Dynamic Schema Adaptation
+- **Automatic Field Detection**: System now fetches actual Feishu table fields and adapts LLM prompts accordingly
+- **Field Type Mapping**: Intelligent mapping between LLM output and Feishu field types
+- **Schema Caching**: Efficient caching of field schemas to reduce API calls
+- **Error Prevention**: Proactive field validation prevents common API errors
+
+### Token Management Enhancements
+- **Automatic Refresh**: Smart token refresh mechanism that only refreshes when needed
+- **Retry Logic**: Robust retry mechanisms with exponential backoff
+- **Error Isolation**: Feishu API errors don't affect Notion operations
+- **Connection Testing**: Comprehensive connection testing for both platforms
 
 ## Changelog
+
+### Version 2.1.0 (2025-01-XX)
+- **Dual-Platform Storage**: Added Feishu Bitable integration for simultaneous Notion + Feishu writing
+- **Feishu API Integration**: Complete Feishu Bitable API client with token management
+- **Smart Data Normalization**: Feishu-specific data normalization and field mapping
+- **Enhanced Configuration**: Web interface support for Feishu credentials
+- **Error Isolation**: Feishu writing failures don't affect Notion operations
+- **Token Management**: Automatic caching and refresh for Feishu access tokens
+- **Dynamic Schema Adaptation**: Automatic field detection and LLM prompt adjustment for Feishu
+- **Field Format Fixes**: Proper URL field formatting (`{"text": "显示文本", "link": "URL"}`) and date timestamp conversion
+- **Comprehensive Documentation**: Detailed Feishu integration guide
 
 ### Version 2.0.0 (2025-08-23)
 - **Major UI Overhaul**: Complete migration to Next.js 14 with modern React components

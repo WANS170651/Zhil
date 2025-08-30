@@ -109,6 +109,71 @@ class Config:
     def llm_base_url(self) -> str:
         return os.getenv("LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
     
+    # 飞书配置
+    @property
+    def feishu_app_id(self) -> str:
+        # 优先使用用户设置，然后使用环境变量
+        try:
+            from .settings_manager import settings_manager
+            effective_settings = settings_manager.get_effective_settings()
+            if effective_settings.feishu_app_id:
+                return effective_settings.feishu_app_id
+        except Exception:
+            pass
+        
+        app_id = os.getenv("FEISHU_APP_ID")
+        if not app_id:
+            raise ValueError("FEISHU_APP_ID环境变量未设置")
+        return app_id
+    
+    @property
+    def feishu_app_secret(self) -> str:
+        # 优先使用用户设置，然后使用环境变量
+        try:
+            from .settings_manager import settings_manager
+            effective_settings = settings_manager.get_effective_settings()
+            if effective_settings.feishu_app_secret:
+                return effective_settings.feishu_app_secret
+        except Exception:
+            pass
+        
+        app_secret = os.getenv("FEISHU_APP_SECRET")
+        if not app_secret:
+            raise ValueError("FEISHU_APP_SECRET环境变量未设置")
+        return app_secret
+    
+    @property
+    def feishu_app_token(self) -> str:
+        # 优先使用用户设置，然后使用环境变量
+        try:
+            from .settings_manager import settings_manager
+            effective_settings = settings_manager.get_effective_settings()
+            if effective_settings.feishu_app_token:
+                return effective_settings.feishu_app_token
+        except Exception:
+            pass
+        
+        app_token = os.getenv("FEISHU_APP_TOKEN")
+        if not app_token:
+            raise ValueError("FEISHU_APP_TOKEN环境变量未设置")
+        return app_token
+    
+    @property
+    def feishu_table_id(self) -> str:
+        # 优先使用用户设置，然后使用环境变量
+        try:
+            from .settings_manager import settings_manager
+            effective_settings = settings_manager.get_effective_settings()
+            if effective_settings.feishu_table_id:
+                return effective_settings.feishu_table_id
+        except Exception:
+            pass
+        
+        table_id = os.getenv("FEISHU_TABLE_ID")
+        if not table_id:
+            raise ValueError("FEISHU_TABLE_ID环境变量未设置")
+        return table_id
+    
     # 缓存配置
     @property
     def schema_cache_ttl(self) -> int:

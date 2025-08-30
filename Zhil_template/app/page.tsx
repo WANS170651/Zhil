@@ -84,7 +84,7 @@ export default function Page() {
                 />
 
                 <p className="mt-4 max-w-[42ch] text-lg text-white/70">
-                  Zhil 由 LLM 驱动，深入理解任意网页，将纷繁的信息提炼为精准、规整的 Notion 条目。你只管收藏，剩下的，交给它就好
+                  Zhil 由 LLM 驱动，深入理解任意网页，将纷繁的信息提炼为精准、规整的条目。支持写入Notion数据库和飞书多维表格。
                 </p>
 
                 {/* CTAs */}
@@ -125,7 +125,7 @@ export default function Page() {
                     <li>批量处理</li>
                     <li>智能提取</li>
                     <li>结构化转换</li>
-                    <li>Notion集成</li>
+                    <li>双平台集成</li>
                     <li>数据管理</li>
                   </ul>
                 </div>

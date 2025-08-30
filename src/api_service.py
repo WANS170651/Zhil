@@ -8,6 +8,7 @@ import logging
 import asyncio
 from typing import List, Dict, Any, Optional, Union
 from contextlib import asynccontextmanager
+from enum import Enum
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,6 +32,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# 枚举定义
+class PlatformChoice(str, Enum):
+    """平台选择枚举"""
+    NOTION_ONLY = "notion_only"
+    FEISHU_ONLY = "feishu_only"
+    BOTH = "both"
+
+
 # Pydantic模型定义
 class URLItem(BaseModel):
     """单个URL项目"""
@@ -43,6 +52,7 @@ class SingleURLRequest(BaseModel):
     url: HttpUrl = Field(..., description="要处理的URL", example="https://example.com/job/123")
     force_create: bool = Field(False, description="是否强制创建新记录（跳过去重）")
     metadata: Optional[Dict[str, Any]] = Field(None, description="可选的元数据")
+    platform: Optional[PlatformChoice] = Field(PlatformChoice.BOTH, description="目标平台选择")
 
 
 class BatchURLRequest(BaseModel):
@@ -59,6 +69,7 @@ class BatchURLRequest(BaseModel):
     )
     force_create: bool = Field(False, description="是否强制创建新记录（跳过去重）")
     batch_delay: float = Field(1.0, description="批量处理间隔时间（秒）", ge=0.1, le=10.0)
+    platform: Optional[PlatformChoice] = Field(PlatformChoice.BOTH, description="目标平台选择")
     
     @validator('urls')
     def validate_urls(cls, v):
@@ -98,6 +109,10 @@ class SettingsRequest(BaseModel):
     qwen_api_key: Optional[str] = Field(None, description="Qwen LLM API Key")
     notion_api_key: Optional[str] = Field(None, description="Notion API Key")
     notion_database_id: Optional[str] = Field(None, description="Notion Database ID")
+    feishu_app_id: Optional[str] = Field(None, description="飞书应用ID")
+    feishu_app_secret: Optional[str] = Field(None, description="飞书应用Secret")
+    feishu_app_token: Optional[str] = Field(None, description="飞书多维表格Token")
+    feishu_table_id: Optional[str] = Field(None, description="飞书表格ID")
 
 
 class SettingsResponse(BaseModel):
@@ -689,6 +704,22 @@ async def save_settings(request: SettingsRequest):
             updates["notion_database_id"] = request.notion_database_id
             logger.info("Notion Database ID已更新")
         
+        if request.feishu_app_id is not None:
+            updates["feishu_app_id"] = request.feishu_app_id
+            logger.info("飞书应用ID已更新")
+        
+        if request.feishu_app_secret is not None:
+            updates["feishu_app_secret"] = request.feishu_app_secret
+            logger.info("飞书应用Secret已更新")
+        
+        if request.feishu_app_token is not None:
+            updates["feishu_app_token"] = request.feishu_app_token
+            logger.info("飞书多维表格Token已更新")
+        
+        if request.feishu_table_id is not None:
+            updates["feishu_table_id"] = request.feishu_table_id
+            logger.info("飞书表格ID已更新")
+        
         # 更新设置
         updated_settings = settings_manager.update_settings(updates)
         
@@ -718,7 +749,11 @@ async def test_settings(request: SettingsRequest):
         test_results = {
             "qwen_api_key": False,
             "notion_api_key": False,
-            "notion_database_id": False
+            "notion_database_id": False,
+            "feishu_app_id": False,
+            "feishu_app_secret": False,
+            "feishu_app_token": False,
+            "feishu_table_id": False
         }
         
         # 测试Qwen API Key
@@ -798,6 +833,38 @@ async def test_settings(request: SettingsRequest):
                     
             except Exception as e:
                 logger.error(f"Notion Database访问测试失败: {e}")
+        
+        # 测试飞书配置（如果提供了完整的飞书配置）
+        if all([request.feishu_app_id, request.feishu_app_secret, request.feishu_app_token, request.feishu_table_id]):
+            try:
+                from .feishu_writer import FeishuWriter
+                
+                # 创建临时飞书写入器进行测试
+                test_feishu_writer = FeishuWriter(
+                    app_id=request.feishu_app_id,
+                    app_secret=request.feishu_app_secret,
+                    app_token=request.feishu_app_token,
+                    table_id=request.feishu_table_id
+                )
+                
+                # 测试连接
+                feishu_test_ok = test_feishu_writer.test_connection(use_user_token=False)  # 使用tenant token测试
+                
+                test_results["feishu_app_id"] = feishu_test_ok
+                test_results["feishu_app_secret"] = feishu_test_ok
+                test_results["feishu_app_token"] = feishu_test_ok
+                test_results["feishu_table_id"] = feishu_test_ok
+                
+                if feishu_test_ok:
+                    logger.info("飞书多维表格连接测试成功")
+                else:
+                    logger.error("飞书多维表格连接测试失败")
+                    
+            except Exception as e:
+                logger.error(f"飞书连接测试失败: {e}")
+        elif any([request.feishu_app_id, request.feishu_app_secret, request.feishu_app_token, request.feishu_table_id]):
+            # 如果只提供了部分飞书配置，跳过测试
+            logger.warning("飞书配置不完整，跳过连接测试")
         
         all_tests_passed = all(test_results.values())
         
